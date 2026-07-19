@@ -221,6 +221,7 @@ function TrendChart({
 }
 
 export default function Home() {
+  const [activeView, setActiveView] = useState<"overview" | "backlog">("overview");
   const [projectIndex, setProjectIndex] = useState(0);
   const [sprintIndex, setSprintIndex] = useState(7);
   const [range, setRange] = useState<4 | 8>(8);
@@ -231,6 +232,13 @@ export default function Home() {
   const [itemFilter, setItemFilter] = useState<"all" | "aging" | "not-ready">("all");
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
+  const [backlogSearch, setBacklogSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [ageFilter, setAgeFilter] = useState("all");
+  const [readinessFilter, setReadinessFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("age");
+  const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
 
   const project = projects[projectIndex];
   const snapshot = project.history[sprintIndex];
@@ -265,9 +273,25 @@ export default function Home() {
     .filter((item) => `${item.id} ${item.title}`.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => b.age - a.age);
 
+  const priorityOf = (item: BacklogItem) => item.status === "Blocked" ? "Critical" : item.age > 45 ? "High" : item.age > 20 ? "Medium" : "Low";
+  const evidenceOf = (item: BacklogItem) => ({
+    criteria: item.status === "Ready" || item.age % 2 === 0,
+    estimate: item.points > 0,
+    dependencies: item.status !== "Blocked",
+  });
+  const isEvidenceReady = (item: BacklogItem) => Object.values(evidenceOf(item)).every(Boolean);
+  const backlogItems = project.items
+    .filter((item) => `${item.id} ${item.title}`.toLowerCase().includes(backlogSearch.toLowerCase()))
+    .filter((item) => statusFilter === "all" || item.status === statusFilter)
+    .filter((item) => kindFilter === "all" || item.kind === kindFilter)
+    .filter((item) => ageFilter === "all" || (ageFilter === "30" ? item.age >= 30 : item.age >= 60))
+    .filter((item) => readinessFilter === "all" || (readinessFilter === "ready" ? isEvidenceReady(item) : !isEvidenceReady(item)))
+    .sort((a, b) => sortBy === "age" ? b.age - a.age : sortBy === "priority" ? ["Critical", "High", "Medium", "Low"].indexOf(priorityOf(a)) - ["Critical", "High", "Medium", "Low"].indexOf(priorityOf(b)) : a.id.localeCompare(b.id));
+
   const changeProject = (nextIndex: number) => {
     setProjectIndex(nextIndex);
     setSprintIndex(projects[nextIndex].history.length - 1);
+    setSelectedItem(null);
     setNotice(`Dashboard updated to ${projects[nextIndex].name}`);
   };
 
@@ -281,7 +305,10 @@ export default function Home() {
         <div className="brand-mark" aria-label="AI Backlog Agent"><span /><span /><span /></div>
         <nav>
           {navItems.map((item, index) => (
-            <button key={item} className={index === 0 ? "nav-item active" : "nav-item"} onClick={() => index !== 0 && setNotice(`${item} is represented in this single-page prototype.`)}>
+            <button key={item} className={(item.toLowerCase() === activeView) ? "nav-item active" : "nav-item"} onClick={() => {
+              if (item === "Overview" || item === "Backlog") setActiveView(item.toLowerCase() as "overview" | "backlog");
+              else setNotice(`${item} is reserved for the next prototype increment.`);
+            }}>
               <span className="nav-glyph" aria-hidden="true">{["⌂", "≡", "□", "↗", "✦"][index]}</span>
               <span>{item}</span>
             </button>
@@ -297,7 +324,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Product operations workspace</p>
-            <h1>AI Backlog Agent</h1>
+            <h1>{activeView === "overview" ? "AI Backlog Agent" : "Backlog"}</h1>
           </div>
           <div className="topbar-actions">
             <label className="select-control">
@@ -307,18 +334,18 @@ export default function Home() {
                 {projects.map((item, index) => <option key={item.name} value={index}>{item.name}</option>)}
               </select>
             </label>
-            <label className="select-control sprint-select">
+            {activeView === "overview" && <label className="select-control sprint-select">
               <span className="sr-only">Sprint snapshot</span>
               <span aria-hidden="true">▣</span>
               <select value={sprintIndex} onChange={(event) => { setSprintIndex(Number(event.target.value)); setNotice("Sprint snapshot updated"); }}>
                 {project.history.map((item, index) => <option key={item.label} value={index}>{item.label}</option>)}
               </select>
-            </label>
-            <button className="primary-button" onClick={() => setDrawerOpen(true)}>Review backlog <span aria-hidden="true">→</span></button>
+            </label>}
+            {activeView === "overview" ? <button className="primary-button" onClick={() => setDrawerOpen(true)}>Review backlog <span aria-hidden="true">→</span></button> : <button className="secondary-button" onClick={() => setActiveView("overview")}>← Back to overview</button>}
           </div>
         </header>
 
-        <section className="metric-grid" aria-label="Backlog summary">
+        {activeView === "overview" ? <><section className="metric-grid" aria-label="Backlog summary">
           <MetricCard symbol="▤" value={String(snapshot.backlog)} label="Backlog items" note={`${Math.abs(delta(snapshot.backlog, previous.backlog))} ${delta(snapshot.backlog, previous.backlog) <= 0 ? "fewer" : "more"} than last sprint`} />
           <MetricCard symbol="✓" value={String(snapshot.ready)} label="Ready" note={`${Math.round((snapshot.ready / snapshot.backlog) * 100)}% of the backlog`} />
           <MetricCard symbol="◷" value={String(snapshot.aging)} label="Aging" note="Items older than 30 days" tone="amber" />
@@ -388,8 +415,53 @@ export default function Home() {
         <footer className="prototype-footer">
           <span><i /> Sample data • No external systems connected</span>
           <button onClick={() => setGuideOpen(true)}>Implementation notes</button>
-        </footer>
+        </footer></> : <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
+          <div className="backlog-intro">
+            <div><p className="eyebrow">{project.shortName} delivery inventory</p><h2>Refine with evidence, not instinct</h2><p>Search, sort, and inspect representative sample items. Readiness is based on visible evidence.</p></div>
+            <span className="sample-badge">Sample data</span>
+          </div>
+
+          <div className="backlog-summary">
+            <article><span>Visible items</span><strong>{backlogItems.length}</strong></article>
+            <article><span>Evidence ready</span><strong>{project.items.filter(isEvidenceReady).length}</strong></article>
+            <article><span>Aging 30+ days</span><strong>{project.items.filter((item) => item.age >= 30).length}</strong></article>
+            <article><span>Blocked</span><strong>{project.items.filter((item) => item.status === "Blocked").length}</strong></article>
+          </div>
+
+          <div className="backlog-toolbar">
+            <label className="backlog-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search backlog</span><input value={backlogSearch} onChange={(event) => setBacklogSearch(event.target.value)} placeholder="Search ID or title" /></label>
+            <label><span>Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option><option>Ready</option><option>Needs refinement</option><option>Blocked</option></select></label>
+            <label><span>Type</span><select value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}><option value="all">All types</option><option>Story</option><option>Bug</option><option>Enabler</option></select></label>
+            <label><span>Age</span><select value={ageFilter} onChange={(event) => setAgeFilter(event.target.value)}><option value="all">Any age</option><option value="30">30+ days</option><option value="60">60+ days</option></select></label>
+            <label><span>Readiness</span><select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)}><option value="all">All evidence</option><option value="ready">Evidence ready</option><option value="missing">Missing evidence</option></select></label>
+            <label><span>Sort</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="age">Oldest first</option><option value="priority">Priority</option><option value="id">Item ID</option></select></label>
+          </div>
+
+          <div className="backlog-table-wrap">
+            <table className="backlog-table">
+              <thead><tr><th>Item</th><th>Type</th><th>Priority</th><th>Status</th><th>Age</th><th>Points</th><th>Readiness evidence</th><th><span className="sr-only">Open</span></th></tr></thead>
+              <tbody>{backlogItems.map((item) => <tr key={item.id}>
+                <td data-label="Item"><button className="item-link" onClick={() => setSelectedItem(item)}><strong>{item.id}</strong><span>{item.title}</span></button></td>
+                <td data-label="Type">{item.kind}</td><td data-label="Priority"><span className={`priority priority-${priorityOf(item).toLowerCase()}`}>{priorityOf(item)}</span></td>
+                <td data-label="Status"><span className={`status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{item.status}</span></td>
+                <td data-label="Age" className={item.age >= 30 ? "age-risk" : ""}>{item.age} days</td><td data-label="Points">{item.points}</td>
+                <td data-label="Readiness"><span className={isEvidenceReady(item) ? "readiness ready" : "readiness missing"}>{isEvidenceReady(item) ? "✓ Evidence ready" : `! ${Object.values(evidenceOf(item)).filter((value) => !value).length} missing`}</span></td>
+                <td><button className="row-open" onClick={() => setSelectedItem(item)} aria-label={`Open ${item.id}`}>›</button></td>
+              </tr>)}</tbody>
+            </table>
+            {backlogItems.length === 0 && <div className="empty-state"><strong>No matching items</strong><span>Clear one or more filters to see the backlog.</span><button className="secondary-button" onClick={() => { setBacklogSearch(""); setStatusFilter("all"); setKindFilter("all"); setAgeFilter("all"); setReadinessFilter("all"); }}>Clear filters</button></div>}
+          </div>
+          <footer className="prototype-footer"><span><i /> Representative backlog • No live system connected</span><button onClick={() => setGuideOpen(true)}>Implementation notes</button></footer>
+        </section>}
       </section>
+
+      <div className={selectedItem ? "scrim open" : "scrim"} onClick={() => setSelectedItem(null)} aria-hidden="true" />
+      <aside className={selectedItem ? "review-drawer open" : "review-drawer"} aria-hidden={!selectedItem} aria-label="Backlog item details">
+        {selectedItem && <><div className="drawer-heading"><div><p className="eyebrow">{selectedItem.id} • {selectedItem.kind}</p><h2>{selectedItem.title}</h2><span>{priorityOf(selectedItem)} priority</span></div><button className="icon-button" onClick={() => setSelectedItem(null)} aria-label="Close item details">×</button></div>
+        <p className="item-description">A representative {selectedItem.kind.toLowerCase()} for the {project.name} backlog. Connect your source system later to display the full description, owner, and discussion history.</p>
+        <div className="detail-grid"><div><span>Status</span><strong>{selectedItem.status}</strong></div><div><span>Age</span><strong>{selectedItem.age} days</strong></div><div><span>Estimate</span><strong>{selectedItem.points} points</strong></div><div><span>Priority</span><strong>{priorityOf(selectedItem)}</strong></div></div>
+        <section className="evidence-panel"><p className="eyebrow">Definition of ready</p><h3>Readiness evidence</h3>{Object.entries({ "Acceptance criteria": evidenceOf(selectedItem).criteria, "Estimate confirmed": evidenceOf(selectedItem).estimate, "Dependencies clear": evidenceOf(selectedItem).dependencies }).map(([label, present]) => <div className="evidence-row" key={label}><span className={present ? "evidence-icon present" : "evidence-icon absent"}>{present ? "✓" : "!"}</span><span>{label}</span><strong>{present ? "Present" : "Missing"}</strong></div>)}<p className="evidence-note">Readiness is calculated from these checks, so missing evidence is never communicated by color alone.</p></section></>}
+      </aside>
 
       <div className={drawerOpen ? "scrim open" : "scrim"} onClick={() => setDrawerOpen(false)} aria-hidden="true" />
       <aside className={drawerOpen ? "review-drawer open" : "review-drawer"} aria-hidden={!drawerOpen} aria-label="Backlog review">

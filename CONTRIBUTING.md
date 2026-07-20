@@ -64,6 +64,8 @@ Documents whether the work actually satisfies the issue's stated acceptance crit
 - Evidence or explanation for each result
 - Final closure decision (close, or not, and why)
 
+Claims in both comments must be scoped to what was actually tested. Don't state something wasn't affected unless it was actually checked, say what wasn't validated instead of implying it's fine. ("Build compatibility was not independently validated" is accurate; "no regression introduced" is not, unless a build/test actually ran.)
+
 Template:
 
 ```

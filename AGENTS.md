@@ -164,6 +164,40 @@ When resuming in a new Codex chat:
 9. Update the issue with detailed implementation and verification evidence.
 10. Keep unfinished issues open.
 
+## Current handoff and next initiative
+
+The repository owner is a solo Product Owner working with two AI collaborators: ChatGPT/Codex for product design, implementation, governance, and repository history; Claude for independent review, security auditing, and a second opinion. The owner makes final product and acceptance decisions.
+
+Recent refinements added to issue #15:
+
+- Sprint capacity cards must eventually come from read-only source iteration data and roll forward automatically when a sprint closes.
+- Closed sprints move to reporting/history while local capacity settings and audit history remain attached to stable source iteration IDs.
+- The Product Owner remains accountable for prioritization.
+- A named acting delegate may receive temporary, scoped, expiring authority during PTO or other absence.
+- Production delegation requires authenticated identity, authorization enforcement, and immutable audit events.
+
+Next planned product initiative:
+
+1. Co-create a concise Product Vision.
+2. Create an outcome-based Roadmap.
+3. Use Claude to contribute and independently review the artifacts.
+4. Store safe portfolio documents in `docs/PRODUCT_VISION.md` and `docs/ROADMAP.md`.
+5. Start with a governed GitHub issue containing acceptance criteria before implementation.
+6. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
+
+Memory work is tracked by issue #17 and draft PR #18:
+
+- Issue: https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/17
+- Draft PR: https://github.com/rhakka303/ai-backlog-agent-dashboard/pull/18
+- Branch: `docs/codex-project-memory`
+
+The hybrid memory model is:
+
+- `AGENTS.md`: shared, safe repository guidance.
+- `claudememory.md`: private, local, gitignored Claude discussion.
+- `CODEXMEMORY.md`: private, local, gitignored Codex discussion.
+- GitHub issues and pull requests: authoritative delivery history.
+
 ## Maintaining this memory
 
 Update this file when a durable project decision changes, a major tab is completed, governance changes, or a production limitation is resolved.

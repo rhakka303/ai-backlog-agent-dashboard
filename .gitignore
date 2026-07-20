@@ -9,5 +9,6 @@ dist/
 .DS_Store
 
 # Private, local-only assistant continuity notes
+CLAUDEMEMORY.md
 claudememory.md
 CODEXMEMORY.md

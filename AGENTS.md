@@ -179,14 +179,16 @@ Recent refinements added to issue #15:
 Current division of work:
 
 1. The repository owner is the Product Owner and final decision-maker.
-2. ChatGPT/Codex is the sole AI implementer for the dashboard: governed issues, acceptance criteria, source changes, tests, deployments, implementation history, and acceptance evidence.
-3. Claude does **not** build, edit, or implement dashboard code.
-4. Claude independently audits Codex's work through GitHub incidents/issues, pull requests, comments, commits, and verification evidence.
-5. Claude watches repository security alerts and reports security findings for governed remediation.
-6. Claude may lead Product Vision and Roadmap documentation, but the owner brings approved implementation direction to Codex.
-7. Codex must treat Claude findings as independent review input, investigate them, and use the normal issue and acceptance workflow for any fix.
-8. Neither AI merges, closes, or declares final product acceptance without the owner's decision and satisfied governance evidence.
-9. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
+2. ChatGPT/Codex is the sole AI implementer for the dashboard application: governed issues, acceptance criteria, application source changes, tests, deployments, implementation history, and acceptance evidence.
+3. Claude does **not** build, edit, or implement dashboard application code, configuration, dependencies, tests, or deployments.
+4. Claude is permitted to create and update Markdown (`.md`) documentation, including Product Vision, Roadmap, audits, reviews, and governance documentation.
+5. Claude's Markdown changes still require the normal issue, branch, pull-request, audit, and owner-acceptance workflow when they are material.
+6. Claude independently audits Codex's work through GitHub incidents/issues, pull requests, comments, commits, and verification evidence.
+7. Claude watches repository security alerts and reports security findings for governed remediation.
+8. The owner brings approved vision, roadmap, audit, and documentation decisions to Codex when dashboard implementation is required.
+9. Codex must treat Claude findings as independent review input, investigate them, and use the normal issue and acceptance workflow for any application fix.
+10. Neither AI merges, closes, or declares final product acceptance without the owner's decision and satisfied governance evidence.
+11. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
 
 Memory work is tracked by issue #17 and draft PR #18:
 

@@ -199,7 +199,7 @@ Memory work is tracked by issue #17 and draft PR #18:
 The hybrid memory model is:
 
 - `AGENTS.md`: shared, safe repository guidance.
-- `claudememory.md`: private, local, gitignored Claude discussion.
+- `CLAUDEMEMORY.md`: private, local, gitignored Claude discussion.
 - `CODEXMEMORY.md`: private, local, gitignored Codex discussion.
 - GitHub issues and pull requests: authoritative delivery history.
 

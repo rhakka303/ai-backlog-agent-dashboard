@@ -18,7 +18,10 @@ type BacklogItem = {
   age: number;
   status: "Ready" | "Needs refinement" | "Blocked";
   points: number;
+  state: string;
 };
+
+type SourceProject = Omit<Project, "items"> & { items: Omit<BacklogItem, "state">[] };
 
 type Project = {
   name: string;
@@ -27,7 +30,7 @@ type Project = {
   items: BacklogItem[];
 };
 
-const projects: Project[] = [
+const sourceProjects: SourceProject[] = [
   {
     name: "CRM Modernization",
     shortName: "CRM",
@@ -97,6 +100,12 @@ const projects: Project[] = [
     ],
   },
 ];
+
+const nativeStates = ["New", "Approved", "Committed", "Active", "Testing", "Closed", "Removed"];
+const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
+  ...project,
+  items: project.items.map((item, itemIndex) => ({ ...item, state: nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length] })),
+}));
 
 const navItems = ["Overview", "Backlog", "Sprints", "Reports", "AI Insights"];
 
@@ -237,6 +246,7 @@ export default function Home() {
   const [kindFilter, setKindFilter] = useState("all");
   const [ageFilter, setAgeFilter] = useState("all");
   const [readinessFilter, setReadinessFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("age");
   const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
   const [sprintSearch, setSprintSearch] = useState("");
@@ -288,6 +298,7 @@ export default function Home() {
     .filter((item) => kindFilter === "all" || item.kind === kindFilter)
     .filter((item) => ageFilter === "all" || (ageFilter === "30" ? item.age >= 30 : item.age >= 60))
     .filter((item) => readinessFilter === "all" || (readinessFilter === "ready" ? isEvidenceReady(item) : !isEvidenceReady(item)))
+    .filter((item) => stateFilter === "all" || item.state === stateFilter)
     .sort((a, b) => sortBy === "age" ? b.age - a.age : sortBy === "priority" ? ["Critical", "High", "Medium", "Low"].indexOf(priorityOf(a)) - ["Critical", "High", "Medium", "Low"].indexOf(priorityOf(b)) : a.id.localeCompare(b.id));
   const sprintPool = project.items.slice(0, Math.min(6, project.items.length));
   const sprintStatusOf = (item: BacklogItem, index: number) => item.status === "Blocked" ? "Blocked" : index < Math.max(1, Math.round((snapshot.completed / 22) * 3)) ? "Done" : index % 3 === 0 ? "In review" : "In progress";
@@ -300,6 +311,8 @@ export default function Home() {
   const blockedPoints = sprintPool.reduce((sum, item, index) => sum + (sprintStatusOf(item, index) === "Blocked" ? item.points : 0), 0);
   const scopeAdded = (sprintIndex + projectIndex) % 4 + 1;
   const scopeRemoved = (sprintIndex + projectIndex) % 2;
+  const stateCounts = nativeStates.map((state) => ({ state, count: project.items.filter((item) => item.state === state).length })).filter((item) => item.count > 0);
+  const sprintStateCounts = nativeStates.map((state) => ({ state, count: sprintPool.filter((item) => item.state === state).length })).filter((item) => item.count > 0);
 
   const changeProject = (nextIndex: number) => {
     setProjectIndex(nextIndex);
@@ -364,6 +377,8 @@ export default function Home() {
           <MetricCard symbol="◷" value={String(snapshot.aging)} label="Aging" note="Items older than 30 days" tone="amber" />
           <MetricCard symbol="↗" value={`${snapshot.predictability}%`} label="Predictability" note={`${delta(snapshot.predictability, previous.predictability) >= 0 ? "+" : ""}${delta(snapshot.predictability, previous.predictability)} points this sprint`} />
         </section>
+
+        <section className="state-report" aria-label="Work item state counts"><div><p className="eyebrow">Native workflow</p><h2>Items by state</h2><span>Read-only source values</span></div><div className="state-count-list">{stateCounts.map(({state, count}) => <article key={state}><span className={`native-state native-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state}</span><strong>{count}</strong></article>)}</div></section>
 
         <section className="dashboard-grid">
           <article className="panel trend-panel">
@@ -440,29 +455,31 @@ export default function Home() {
             <article><span>Aging 30+ days</span><strong>{project.items.filter((item) => item.age >= 30).length}</strong></article>
             <article><span>Blocked</span><strong>{project.items.filter((item) => item.status === "Blocked").length}</strong></article>
           </div>
+          <section className="state-report compact" aria-label="Backlog state counts"><div><p className="eyebrow">Native workflow</p><h2>Items by state</h2></div><div className="state-count-list">{stateCounts.map(({state, count}) => <article key={state}><span className={`native-state native-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state}</span><strong>{count}</strong></article>)}</div></section>
 
           <div className="backlog-toolbar">
             <label className="backlog-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search backlog</span><input value={backlogSearch} onChange={(event) => setBacklogSearch(event.target.value)} placeholder="Search ID or title" /></label>
-            <label><span>Status</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option><option>Ready</option><option>Needs refinement</option><option>Blocked</option></select></label>
+            <label><span>Readiness</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All readiness</option><option>Ready</option><option>Needs refinement</option><option>Blocked</option></select></label>
             <label><span>Type</span><select value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}><option value="all">All types</option><option>Story</option><option>Bug</option><option>Enabler</option></select></label>
             <label><span>Age</span><select value={ageFilter} onChange={(event) => setAgeFilter(event.target.value)}><option value="all">Any age</option><option value="30">30+ days</option><option value="60">60+ days</option></select></label>
             <label><span>Readiness</span><select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)}><option value="all">All evidence</option><option value="ready">Evidence ready</option><option value="missing">Missing evidence</option></select></label>
+            <label><span>State</span><select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}><option value="all">All states</option>{nativeStates.map((state) => <option key={state}>{state}</option>)}</select></label>
             <label><span>Sort</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="age">Oldest first</option><option value="priority">Priority</option><option value="id">Item ID</option></select></label>
           </div>
 
           <div className="backlog-table-wrap">
             <table className="backlog-table">
-              <thead><tr><th>Item</th><th>Type</th><th>Priority</th><th>Status</th><th>Age</th><th>Points</th><th>Readiness evidence</th><th><span className="sr-only">Open</span></th></tr></thead>
+              <thead><tr><th>Item</th><th>Type</th><th>State</th><th>Priority</th><th>Readiness</th><th>Age</th><th>Points</th><th>Evidence</th><th><span className="sr-only">Open</span></th></tr></thead>
               <tbody>{backlogItems.map((item) => <tr key={item.id}>
                 <td data-label="Item"><button className="item-link" onClick={() => setSelectedItem(item)}><strong>{item.id}</strong><span>{item.title}</span></button></td>
-                <td data-label="Type">{item.kind}</td><td data-label="Priority"><span className={`priority priority-${priorityOf(item).toLowerCase()}`}>{priorityOf(item)}</span></td>
-                <td data-label="Status"><span className={`status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{item.status}</span></td>
+                <td data-label="Type">{item.kind}</td><td data-label="State"><span className={`native-state native-state-${item.state.toLowerCase().replaceAll(" ", "-")}`}>{item.state}</span></td><td data-label="Priority"><span className={`priority priority-${priorityOf(item).toLowerCase()}`}>{priorityOf(item)}</span></td>
+                <td data-label="Readiness"><span className={`status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{item.status}</span></td>
                 <td data-label="Age" className={item.age >= 30 ? "age-risk" : ""}>{item.age} days</td><td data-label="Points">{item.points}</td>
                 <td data-label="Readiness"><span className={isEvidenceReady(item) ? "readiness ready" : "readiness missing"}>{isEvidenceReady(item) ? "✓ Evidence ready" : `! ${Object.values(evidenceOf(item)).filter((value) => !value).length} missing`}</span></td>
                 <td><button className="row-open" onClick={() => setSelectedItem(item)} aria-label={`Open ${item.id}`}>›</button></td>
               </tr>)}</tbody>
             </table>
-            {backlogItems.length === 0 && <div className="empty-state"><strong>No matching items</strong><span>Clear one or more filters to see the backlog.</span><button className="secondary-button" onClick={() => { setBacklogSearch(""); setStatusFilter("all"); setKindFilter("all"); setAgeFilter("all"); setReadinessFilter("all"); }}>Clear filters</button></div>}
+            {backlogItems.length === 0 && <div className="empty-state"><strong>No matching items</strong><span>Clear one or more filters to see the backlog.</span><button className="secondary-button" onClick={() => { setBacklogSearch(""); setStatusFilter("all"); setKindFilter("all"); setAgeFilter("all"); setReadinessFilter("all"); setStateFilter("all"); }}>Clear filters</button></div>}
           </div>
           <footer className="prototype-footer"><span><i /> Representative backlog • No live system connected</span><button onClick={() => setGuideOpen(true)}>Implementation notes</button></footer>
         </section> : <section className="sprint-workspace" aria-label={`${project.name} ${snapshot.label}`}>
@@ -479,14 +496,14 @@ export default function Home() {
           </div>
 
           <div className="sprint-health-grid">
-            <article className="panel sprint-progress-panel"><div className="panel-heading"><div><h2>Sprint progress</h2><p>Point completion</p></div><strong className="progress-percent">{Math.round((completedPoints / committedPoints) * 100)}%</strong></div><div className="sprint-progress-track"><i style={{width: `${(completedPoints / committedPoints) * 100}%`}} /></div><div className="progress-labels"><span>{completedPoints} completed</span><span>{committedPoints - completedPoints} remaining</span></div><div className="status-distribution">{["Done", "In review", "In progress", "Blocked"].map((state) => { const count = sprintPool.filter((item, index) => sprintStatusOf(item, index) === state).length; return <div key={state}><span>{state}</span><strong>{count}</strong></div>; })}</div></article>
+            <article className="panel sprint-progress-panel"><div className="panel-heading"><div><h2>Sprint progress</h2><p>Point completion</p></div><strong className="progress-percent">{Math.round((completedPoints / committedPoints) * 100)}%</strong></div><div className="sprint-progress-track"><i style={{width: `${(completedPoints / committedPoints) * 100}%`}} /></div><div className="progress-labels"><span>{completedPoints} completed</span><span>{committedPoints - completedPoints} remaining</span></div><h3 className="state-subheading">Sprint items by native state</h3><div className="status-distribution">{sprintStateCounts.map(({state, count}) => <div key={state}><span>{state}</span><strong>{count}</strong></div>)}</div></article>
             <article className="panel scope-panel"><div className="panel-heading"><div><h2>Scope movement</h2><p>Since sprint start</p></div></div><div className="scope-stat added"><span>+ Added</span><strong>{scopeAdded} items</strong></div><div className="scope-stat removed"><span>− Removed</span><strong>{scopeRemoved} items</strong></div><p className="scope-note">! Scope changed after commitment. Confirm the trade-off during sprint review.</p></article>
             <article className="panel sprint-ai-panel"><div className="panel-heading"><div><h2>AI risk insights</h2><p>Reserved analysis space</p></div><span className="coming-badge">Coming next</span></div><div className="sprint-ai-empty"><span aria-hidden="true">✦</span><strong>Evidence before advice</strong><p>Future AI observations will cite sprint items, scope movement, and calculation time.</p></div></article>
           </div>
 
           <div className="sprint-items-panel">
             <div className="sprint-items-heading"><div><h2>Sprint items</h2><p>{sprintItems.length} of {sprintPool.length} representative items</p></div><div className="sprint-controls"><label className="backlog-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search sprint items</span><input value={sprintSearch} onChange={(event) => setSprintSearch(event.target.value)} placeholder="Search sprint items" /></label><label><span className="sr-only">Filter sprint status</span><select value={sprintStatus} onChange={(event) => setSprintStatus(event.target.value)}><option value="all">All statuses</option><option>Done</option><option>In review</option><option>In progress</option><option>Blocked</option></select></label></div></div>
-            <div className="sprint-item-list">{sprintItems.map(({item, sprintStatus: state}) => <button className="sprint-item-row" key={item.id} onClick={() => setSelectedItem(item)}><span className={`sprint-state sprint-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state === "Blocked" ? "! " : state === "Done" ? "✓ " : ""}{state}</span><span className="sprint-item-title"><strong>{item.id}</strong>{item.title}</span><span>{item.kind}</span><span>{item.points} pts</span><span className={item.age > 30 ? "age-risk" : ""}>{item.age}d old</span><span aria-hidden="true">›</span></button>)}</div>
+            <div className="sprint-item-list">{sprintItems.map(({item, sprintStatus: state}) => <button className="sprint-item-row" key={item.id} onClick={() => setSelectedItem(item)}><span className={`native-state native-state-${item.state.toLowerCase().replaceAll(" ", "-")}`}>{item.state}</span><span className="sprint-item-title"><strong>{item.id}</strong>{item.title}</span><span className={`sprint-state sprint-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state === "Blocked" ? "! " : state === "Done" ? "✓ " : ""}{state}</span><span>{item.points} pts</span><span className={item.age > 30 ? "age-risk" : ""}>{item.age}d old</span><span aria-hidden="true">›</span></button>)}</div>
             {sprintItems.length === 0 && <div className="empty-state"><strong>No matching sprint items</strong><span>Change the search or status filter.</span><button className="secondary-button" onClick={() => { setSprintSearch(""); setSprintStatus("all"); }}>Clear filters</button></div>}
           </div>
           <footer className="prototype-footer"><span><i /> Representative sprint • No live system connected</span><button onClick={() => setActiveView("backlog")}>Open Backlog</button></footer>
@@ -497,7 +514,7 @@ export default function Home() {
       <aside className={selectedItem ? "review-drawer open" : "review-drawer"} aria-hidden={!selectedItem} aria-label="Backlog item details">
         {selectedItem && <><div className="drawer-heading"><div><p className="eyebrow">{selectedItem.id} • {selectedItem.kind}</p><h2>{selectedItem.title}</h2><span>{priorityOf(selectedItem)} priority</span></div><button className="icon-button" onClick={() => setSelectedItem(null)} aria-label="Close item details">×</button></div>
         <p className="item-description">A representative {selectedItem.kind.toLowerCase()} for the {project.name} backlog. Connect your source system later to display the full description, owner, and discussion history.</p>
-        <div className="detail-grid"><div><span>Status</span><strong>{selectedItem.status}</strong></div><div><span>Age</span><strong>{selectedItem.age} days</strong></div><div><span>Estimate</span><strong>{selectedItem.points} points</strong></div><div><span>Priority</span><strong>{priorityOf(selectedItem)}</strong></div></div>
+        <div className="detail-grid"><div><span>Native state</span><strong>{selectedItem.state}</strong></div><div><span>Readiness</span><strong>{selectedItem.status}</strong></div><div><span>Age</span><strong>{selectedItem.age} days</strong></div><div><span>Estimate</span><strong>{selectedItem.points} points</strong></div><div><span>Priority</span><strong>{priorityOf(selectedItem)}</strong></div></div>
         {activeView === "sprints" ? <section className="evidence-panel"><p className="eyebrow">Delivery risk</p><h3>Risk evidence</h3>{Object.entries({ "Blocked dependency": selectedItem.status === "Blocked", "Aging over 30 days": selectedItem.age > 30, "High or critical priority": ["High", "Critical"].includes(priorityOf(selectedItem)) }).map(([label, risk]) => <div className="evidence-row" key={label}><span className={risk ? "evidence-icon absent" : "evidence-icon present"}>{risk ? "!" : "✓"}</span><span>{label}</span><strong>{risk ? "Risk found" : "Clear"}</strong></div>)}<p className="evidence-note">Risk evidence uses explicit labels and symbols so it never depends on color alone.</p></section> : <section className="evidence-panel"><p className="eyebrow">Definition of ready</p><h3>Readiness evidence</h3>{Object.entries({ "Acceptance criteria": evidenceOf(selectedItem).criteria, "Estimate confirmed": evidenceOf(selectedItem).estimate, "Dependencies clear": evidenceOf(selectedItem).dependencies }).map(([label, present]) => <div className="evidence-row" key={label}><span className={present ? "evidence-icon present" : "evidence-icon absent"}>{present ? "✓" : "!"}</span><span>{label}</span><strong>{present ? "Present" : "Missing"}</strong></div>)}<p className="evidence-note">Readiness is calculated from these checks, so missing evidence is never communicated by color alone.</p></section>}</>}
       </aside>
 

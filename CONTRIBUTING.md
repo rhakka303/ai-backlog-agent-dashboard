@@ -23,6 +23,15 @@ Each issue should include:
 - Acceptance criteria
 - Validation notes
 
+## Code comments
+
+Comment the *why*, not the *what* — good naming should already cover what code does.
+
+- Every new file or component gets a short comment explaining its purpose.
+- Comment non-obvious logic: calculations, thresholds, business rules, workarounds, anything a future reader would have to reverse-engineer otherwise.
+- Skip comments on self-explanatory code.
+- Update comments when the code they describe changes — a stale comment is worse than none.
+
 ## AI-assisted work
 
 AI may help draft code, tests, documentation, or analysis. A human remains responsible for:

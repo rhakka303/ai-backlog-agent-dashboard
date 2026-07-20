@@ -178,12 +178,15 @@ Recent refinements added to issue #15:
 
 Current division of work:
 
-1. Claude leads creation of the Product Vision and outcome-based Roadmap.
-2. The repository owner will bring those artifacts or specific questions to ChatGPT/Codex when implementation input or review is wanted.
-3. ChatGPT/Codex stays focused on building the dashboard: governed issues, acceptance criteria, source changes, tests, deployments, implementation history, and acceptance evidence.
-4. Do not independently start or take ownership of the vision/roadmap work unless the repository owner explicitly asks.
-5. When vision or roadmap decisions affect implementation, translate the approved direction into dashboard issues and testable acceptance criteria.
-6. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
+1. The repository owner is the Product Owner and final decision-maker.
+2. ChatGPT/Codex is the sole AI implementer for the dashboard: governed issues, acceptance criteria, source changes, tests, deployments, implementation history, and acceptance evidence.
+3. Claude does **not** build, edit, or implement dashboard code.
+4. Claude independently audits Codex's work through GitHub incidents/issues, pull requests, comments, commits, and verification evidence.
+5. Claude watches repository security alerts and reports security findings for governed remediation.
+6. Claude may lead Product Vision and Roadmap documentation, but the owner brings approved implementation direction to Codex.
+7. Codex must treat Claude findings as independent review input, investigate them, and use the normal issue and acceptance workflow for any fix.
+8. Neither AI merges, closes, or declares final product acceptance without the owner's decision and satisfied governance evidence.
+9. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
 
 Memory work is tracked by issue #17 and draft PR #18:
 

@@ -7,4 +7,7 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+
+# Private, local-only assistant continuity notes
 claudememory.md
+CODEXMEMORY.md

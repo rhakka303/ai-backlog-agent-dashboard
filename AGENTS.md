@@ -6,6 +6,8 @@ This file is the durable project memory for Codex and other repository-aware age
 
 Do not treat chat history as the system of record. GitHub issues, pull requests, commits, repository documentation, and deployed verification evidence are authoritative.
 
+After this file and `CONTRIBUTING.md`, read the tracked `CODEX.md` for the current operational handoff. Verify its status statements against live GitHub before acting; it summarizes but does not replace authoritative issues and pull requests.
+
 ## Product summary
 
 The AI Backlog Agent Dashboard is a portfolio-quality product-owner prototype for understanding, refining, prioritizing, and reporting on delivery backlogs.
@@ -153,8 +155,8 @@ Never imply these controls exist merely because the interface represents them.
 
 When resuming in a new Codex chat:
 
-1. Read this file and `CONTRIBUTING.md`.
-2. Inspect open issues and draft/open pull requests.
+1. Read this file, `CONTRIBUTING.md`, `CODEX.md`, `docs/PRODUCT_VISION.md`, and `docs/ROADMAP.md`.
+2. Inspect all open issues and all draft/open pull requests.
 3. Read the target issue, all scope-refinement comments, and its acceptance criteria.
 4. Check the relevant branch and recent commits before editing.
 5. Verify whether the live site and repository branch are aligned.
@@ -198,10 +200,35 @@ Memory work is tracked by issue #17 and draft PR #18:
 
 The hybrid memory model is:
 
-- `AGENTS.md`: shared, safe repository guidance.
+- `AGENTS.md`: shared, durable repository governance and agent guidance.
+- `CODEX.md`: tracked current operational handoff for new Codex chats.
 - `CLAUDEMEMORY.md`: private, local, gitignored Claude discussion.
 - `CODEXMEMORY.md`: private, local, gitignored Codex discussion.
 - GitHub issues and pull requests: authoritative delivery history.
+
+## July 20, 2026 operational status
+
+Issue #15 and draft PR #16 remain the active implementation priority. Do not begin the newer Epics merely because their issues exist, and do not merge or close #15/#16 until the remaining acceptance criteria are implemented and the repository owner posts separate Acceptance Verification.
+
+Two coordinated initiatives are fully decomposed but not yet implemented:
+
+- Epic #21 with children #22-#30 adds first-class Epic visibility across Overview, Backlog, Prioritization, Sprints, Reports, and AI evidence surfaces.
+- Epic #31 with children #32-#45 establishes the canonical work-item model, Profile/System Settings, generated Sprint calendar, governed capacity, representative sample data, immutable historical snapshots, complete Backlog inventory, cross-view migrations, reporting inputs, simulated read-only refresh, and final validation.
+
+Critical sequencing:
+
+- #32 establishes the canonical common work-item foundation.
+- #22 extends #32 with Epic-specific relationships and must not create a parallel source of truth.
+- #37 depends on the canonical model, Epic extension, Sprint calendar, and capacity rules.
+- #39 makes Backlog the complete visible inventory consumed by the other views.
+- #40-#44 migrate the views and shared reporting/refresh behavior.
+- #45 is the final integration gate after #32-#44 and #22 receive owner acceptance.
+
+A real Sprints defect is tracked by #41: selecting a Sprint changes summary data while the item table can continue showing a fixed set. The correction must make every displayed Sprint field and item membership derive from the same selected historical snapshot.
+
+A future human-governed AI Sprint-planning direction has been discussed but is not yet an implementation issue. After humans supply accountable ratings and deterministic weighted scores, AI may propose an ordered, capacity-aware multi-Sprint Draft without exceeding Hard Maximums. Each Sprint must be expandable for inspection. Only an authorized human may edit and move the plan from Draft to Accepted, and acceptance never writes to Azure DevOps or Jira. See `CODEX.md` for the full current handoff and create governed issues before implementation.
+
+Issue #46 tracks the documentation-only refresh that added `CODEX.md` and updated this file. No application behavior is part of #46.
 
 ## Maintaining this memory
 

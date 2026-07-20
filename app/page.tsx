@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import PrioritizationView from "./PrioritizationView";
 
 type Snapshot = {
   label: string;
@@ -107,7 +108,7 @@ const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
   items: project.items.map((item, itemIndex) => ({ ...item, state: nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length] })),
 }));
 
-const navItems = ["Overview", "Backlog", "Sprints", "Reports", "AI Insights"];
+const navItems = ["Overview", "Backlog", "Prioritization", "Sprints", "Reports", "AI Insights"];
 
 function delta(current: number, previous: number) {
   return current - previous;
@@ -230,7 +231,7 @@ function TrendChart({
 }
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<"overview" | "backlog" | "sprints">("overview");
+  const [activeView, setActiveView] = useState<"overview" | "backlog" | "prioritization" | "sprints">("overview");
   const [projectIndex, setProjectIndex] = useState(0);
   const [sprintIndex, setSprintIndex] = useState(7);
   const [range, setRange] = useState<4 | 8>(8);
@@ -332,10 +333,10 @@ export default function Home() {
         <nav>
           {navItems.map((item, index) => (
             <button key={item} className={(item.toLowerCase() === activeView) ? "nav-item active" : "nav-item"} onClick={() => {
-              if (item === "Overview" || item === "Backlog" || item === "Sprints") setActiveView(item.toLowerCase() as "overview" | "backlog" | "sprints");
+              if (item === "Overview" || item === "Backlog" || item === "Prioritization" || item === "Sprints") setActiveView(item.toLowerCase() as "overview" | "backlog" | "prioritization" | "sprints");
               else setNotice(`${item} is reserved for the next prototype increment.`);
             }}>
-              <span className="nav-glyph" aria-hidden="true">{["⌂", "≡", "□", "↗", "✦"][index]}</span>
+              <span className="nav-glyph" aria-hidden="true">{["⌂", "≡", "◇", "□", "↗", "✦"][index]}</span>
               <span>{item}</span>
             </button>
           ))}
@@ -350,7 +351,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Product operations workspace</p>
-            <h1>{activeView === "overview" ? "AI Backlog Agent" : activeView === "backlog" ? "Backlog" : "Sprints"}</h1>
+            <h1>{activeView === "overview" ? "AI Backlog Agent" : activeView === "backlog" ? "Backlog" : activeView === "prioritization" ? "Prioritization" : "Sprints"}</h1>
           </div>
           <div className="topbar-actions">
             <label className="select-control">
@@ -360,7 +361,7 @@ export default function Home() {
                 {projects.map((item, index) => <option key={item.name} value={index}>{item.name}</option>)}
               </select>
             </label>
-            {activeView !== "backlog" && <label className="select-control sprint-select">
+            {(activeView === "overview" || activeView === "sprints") && <label className="select-control sprint-select">
               <span className="sr-only">Sprint snapshot</span>
               <span aria-hidden="true">▣</span>
               <select value={sprintIndex} onChange={(event) => { setSprintIndex(Number(event.target.value)); setNotice("Sprint snapshot updated"); }}>
@@ -443,7 +444,7 @@ export default function Home() {
         <footer className="prototype-footer">
           <span><i /> Sample data • No external systems connected</span>
           <button onClick={() => setGuideOpen(true)}>Implementation notes</button>
-        </footer></> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
+        </footer></> : activeView === "prioritization" ? <PrioritizationView projectName={project.name} items={project.items} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
           <div className="backlog-intro">
             <div><p className="eyebrow">{project.shortName} delivery inventory</p><h2>Refine with evidence, not instinct</h2><p>Search, sort, and inspect representative sample items. Readiness is based on visible evidence.</p></div>
             <span className="sample-badge">Sample data</span>

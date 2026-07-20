@@ -176,13 +176,13 @@ Recent refinements added to issue #15:
 - A named acting delegate may receive temporary, scoped, expiring authority during PTO or other absence.
 - Production delegation requires authenticated identity, authorization enforcement, and immutable audit events.
 
-Next planned product initiative:
+Current division of work:
 
-1. Co-create a concise Product Vision.
-2. Create an outcome-based Roadmap.
-3. Use Claude to contribute and independently review the artifacts.
-4. Store safe portfolio documents in `docs/PRODUCT_VISION.md` and `docs/ROADMAP.md`.
-5. Start with a governed GitHub issue containing acceptance criteria before implementation.
+1. Claude leads creation of the Product Vision and outcome-based Roadmap.
+2. The repository owner will bring those artifacts or specific questions to ChatGPT/Codex when implementation input or review is wanted.
+3. ChatGPT/Codex stays focused on building the dashboard: governed issues, acceptance criteria, source changes, tests, deployments, implementation history, and acceptance evidence.
+4. Do not independently start or take ownership of the vision/roadmap work unless the repository owner explicitly asks.
+5. When vision or roadmap decisions affect implementation, translate the approved direction into dashboard issues and testable acceptance criteria.
 6. Present the product honestly as a working dashboard prototype and a designed human-governed AI backlog agent—not yet a production AI agent.
 
 Memory work is tracked by issue #17 and draft PR #18:

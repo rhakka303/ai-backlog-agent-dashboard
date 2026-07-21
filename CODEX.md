@@ -6,7 +6,7 @@ This tracked file gives a new Codex chat a concise starting point. Read it after
 
 This file is a summary, not the delivery system of record. GitHub issues, pull requests, commits, repository documentation, and deployed evidence remain authoritative.
 
-Last refreshed: July 20, 2026.
+Last refreshed: July 20, 2026 (issue #15 audit handoff).
 
 ## Authority and collaboration
 
@@ -201,3 +201,57 @@ Never check acceptance boxes merely because code exists. Verification must point
 - Issue #15/draft PR #16 remain active.
 - Issue #46 tracks this documentation-only handoff refresh.
 - No application code was changed as part of #46.
+
+
+## Issue #15 audit handoff — July 20, 2026
+
+A read-only Codex implementation audit rechecked all current issue #15 acceptance checks against the updated issue body, all 12 refinement comments, draft PR #16 code, and available implementation evidence. The audit did not change application code, issue checkboxes, PR state, merge state, or issue state.
+
+### Audit totals
+
+| Result | Count |
+|---|---:|
+| Pass | 34 |
+| Partial | 6 |
+| Fail | 41 |
+| Total | 81 |
+
+Thirteen acceptance boxes in the issue body had already been checked by the owner. Codex rechecked them as implementation evidence, not owner acceptance: 10 passed, 2 were partial, and 1 failed.
+
+- Failed checked criterion: project selection exists, but comparison-level selection and comparable-candidate selection are not implemented.
+- Partial checked criterion: weights are configurable, but validation is incomplete.
+- Partial checked criterion: a UTC browser-local event is created and is not editable through the UI, but browser-local storage is not a truly immutable audit store.
+
+Criterion 1, **Prioritization opens as a complete tab**, passed. This means the tab exists and renders a substantive workspace; it does not mean every function within it is complete.
+
+### Confirmed defects requiring PR #16 rework
+
+1. Mandatory items use `if (x.mandatory) return 999;`, causing a fake numeric score to be stored like a real method result. Mandatory work must be classified separately, display **Mandatory — not scored**, store a null score, and use a clearly labeled ordering policy rather than a fake calculated rank.
+2. Eligibility gates only final recording. Ineligible items can still be scored, sorted/ranked, and assigned a decision before recording is attempted.
+3. Current Rank and Recommended Rank are not explicitly implemented. The small unlabeled sort position is neither a clear Current Rank nor a labeled Recommended Rank.
+4. Override does not enforce a nonempty rationale.
+5. Evidence validation checks only whether text is nonempty, so generic placeholder text passes. A governed evidence policy and explicit validation state are still required.
+6. Relative Weighting does not display the value percentage and cost percentage it claims to compare; it displays only the final ratio.
+7. Decision History is structurally missing Inputs, Evidence, Rank, and Version from its data model and recorded snapshots.
+
+Additional material failures include incomplete zero/missing/invalid/incompatible-input validation; missing reproducible known-dataset tests; missing formula and decision versioning; incomplete correction/version comparison; premature planned-Sprint editing; missing current-source-Sprint display and reconciliation; missing separate Sprint, estimate, and capacity audit events; hard-coded Sprint 25–27 cards; missing readiness/dependency/blocked/skipped warnings; missing source rollover and stable iteration identity; missing authentication and temporary Product Owner delegation; and seeded ratings/evidence that must never be presented as accountable real inputs.
+
+### Scope decisions and boundaries
+
+- Epic-level comparison was removed from #15 and belongs to issue #26, which is gated on #15/#16.
+- The absence of first-class Epics must not be treated as a #15 failure after that scope correction.
+- Decision History's labeled-column table redesign belongs to issue #48 and must not be folded into #15. Issue #15 still owns the missing history data fields and snapshots.
+- Production-only rollover, durable immutable history, connector reconciliation, authentication, and delegation remain failures while they remain written into #15. If the owner wants them deferred, scope must be formally moved to governed future issues; Codex must not silently ignore them.
+- Azure DevOps and Jira remain strictly read-only. No fix may introduce write-back behavior.
+
+### Required next workflow
+
+1. Post the consolidated audit to issue #15, clearly labeled **Codex Implementation Audit — not owner Acceptance Verification**. This comment was requested but had not yet been posted at this handoff because the earlier connector call ambiguously targeted PR #15 and stopped for confirmation.
+2. Re-read the current #15 body and every comment before editing; do not rely on an older cached issue body.
+3. Continue the existing `feature/prioritization-workspace` branch and draft PR #16; do not create duplicate implementation work.
+4. Rework the foundational defects first: eligibility/classification, mandatory scoring, explicit ranks, governed validation, visible calculations, and the complete versioned history model.
+5. Audit and test every current criterion individually after rework, including criteria the owner previously checked.
+6. Post detailed Implementation History with files, commits, commands/tests, deployment evidence, limitations, and criterion evidence.
+7. Stop for Steven's separate Acceptance Verification. Codex must not check the owner's boxes, accept its own work, merge PR #16, or close issue #15.
+
+Documentation issue #49 and its draft PR track this handoff refresh only. They change no dashboard behavior.

@@ -20,15 +20,18 @@ type BacklogItem = {
   status: "Ready" | "Needs refinement" | "Blocked";
   points: number;
   state: string;
+  currentIterationId: string | null;
 };
 
-type SourceProject = Omit<Project, "items"> & { items: Omit<BacklogItem, "state">[] };
+type SourceIteration = { id: string; name: string; startAt: string; endAt: string; lifecycle: "closed" | "active" | "upcoming"; sourceCommittedPoints: number };
+type SourceProject = Omit<Project, "items" | "iterations"> & { items: Omit<BacklogItem, "state" | "currentIterationId">[] };
 
 type Project = {
   name: string;
   shortName: string;
   history: Snapshot[];
   items: BacklogItem[];
+  iterations: SourceIteration[];
 };
 
 const sourceProjects: SourceProject[] = [
@@ -53,7 +56,7 @@ const sourceProjects: SourceProject[] = [
       { id: "CRM-231", title: "Improve bulk import errors", kind: "Bug", age: 19, status: "Needs refinement", points: 3 },
       { id: "CRM-238", title: "Create renewal activity view", kind: "Story", age: 12, status: "Ready", points: 5 },
       { id: "CRM-244", title: "Document API rate limits", kind: "Enabler", age: 7, status: "Ready", points: 2 },
-      { id: "CRM-249", title: "Expose customer timezone", kind: "Story", age: 3, status: "Ready", points: 2 },
+      { id: "CRM-249", title: "Expose customer timezone", kind: "Story", age: 3, status: "Ready", points: 0 },
     ],
   },
   {
@@ -75,7 +78,7 @@ const sourceProjects: SourceProject[] = [
       { id: "WEB-118", title: "Add preferred contact method", kind: "Story", age: 24, status: "Ready", points: 3 },
       { id: "WEB-124", title: "Instrument profile completion", kind: "Enabler", age: 18, status: "Ready", points: 2 },
       { id: "WEB-132", title: "Improve mobile invoice filters", kind: "Story", age: 11, status: "Ready", points: 5 },
-      { id: "WEB-141", title: "Add accessible error summary", kind: "Story", age: 6, status: "Ready", points: 3 },
+      { id: "WEB-141", title: "Add accessible error summary", kind: "Story", age: 6, status: "Ready", points: 0 },
     ],
   },
   {
@@ -97,15 +100,24 @@ const sourceProjects: SourceProject[] = [
       { id: "IAM-79", title: "Handle duplicate directory IDs", kind: "Bug", age: 46, status: "Needs refinement", points: 5 },
       { id: "IAM-88", title: "Pilot manager access reviews", kind: "Story", age: 31, status: "Ready", points: 8 },
       { id: "IAM-96", title: "Document break-glass process", kind: "Enabler", age: 20, status: "Ready", points: 3 },
-      { id: "IAM-103", title: "Add provisioning audit event", kind: "Story", age: 9, status: "Ready", points: 5 },
+      { id: "IAM-103", title: "Add provisioning audit event", kind: "Story", age: 9, status: "Ready", points: 0 },
     ],
   },
 ];
 
 const nativeStates = ["New", "Approved", "Committed", "Active", "Testing", "Closed", "Removed"];
+const sourceIterations = (shortName: string): SourceIteration[] => [
+  { id: `${shortName.toLowerCase()}-sprint-23`, name: "Sprint 23", startAt: "2026-06-17T00:00:00.000Z", endAt: "2026-06-30T23:59:59.000Z", lifecycle: "closed", sourceCommittedPoints: 22 },
+  { id: `${shortName.toLowerCase()}-sprint-24`, name: "Sprint 24", startAt: "2026-07-01T00:00:00.000Z", endAt: "2026-07-14T23:59:59.000Z", lifecycle: "active", sourceCommittedPoints: 18 },
+  { id: `${shortName.toLowerCase()}-sprint-25`, name: "Sprint 25", startAt: "2026-07-15T00:00:00.000Z", endAt: "2026-07-28T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
+  { id: `${shortName.toLowerCase()}-sprint-26`, name: "Sprint 26", startAt: "2026-07-29T00:00:00.000Z", endAt: "2026-08-11T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
+  { id: `${shortName.toLowerCase()}-sprint-27`, name: "Sprint 27", startAt: "2026-08-12T00:00:00.000Z", endAt: "2026-08-25T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
+  { id: `${shortName.toLowerCase()}-sprint-28`, name: "Sprint 28", startAt: "2026-08-26T00:00:00.000Z", endAt: "2026-09-08T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
+];
 const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
   ...project,
-  items: project.items.map((item, itemIndex) => ({ ...item, state: nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length] })),
+  iterations: sourceIterations(project.shortName),
+  items: project.items.map((item, itemIndex) => { const state = nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length]; return { ...item, state, currentIterationId: ["Committed", "Active", "Testing"].includes(state) ? `${project.shortName.toLowerCase()}-sprint-24` : null }; }),
 }));
 
 const navItems = ["Overview", "Backlog", "Prioritization", "Sprints", "Reports", "AI Insights"];
@@ -444,7 +456,7 @@ export default function Home() {
         <footer className="prototype-footer">
           <span><i /> Sample data • No external systems connected</span>
           <button onClick={() => setGuideOpen(true)}>Implementation notes</button>
-        </footer></> : activeView === "prioritization" ? <PrioritizationView projectName={project.name} items={project.items} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
+        </footer></> : activeView === "prioritization" ? <PrioritizationView projectName={project.name} items={project.items} iterations={project.iterations} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
           <div className="backlog-intro">
             <div><p className="eyebrow">{project.shortName} delivery inventory</p><h2>Refine with evidence, not instinct</h2><p>Search, sort, and inspect representative sample items. Readiness is based on visible evidence.</p></div>
             <span className="sample-badge">Sample data</span>

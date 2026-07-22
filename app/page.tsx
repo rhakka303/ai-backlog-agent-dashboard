@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PrioritizationView from "./PrioritizationView";
 
 type Snapshot = {
@@ -120,6 +120,8 @@ const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
   items: project.items.map((item, itemIndex) => { const state = nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length]; return { ...item, state, currentIterationId: ["Committed", "Active", "Testing"].includes(state) ? `${project.shortName.toLowerCase()}-sprint-24` : null }; }),
 }));
 
+type DashboardView = "overview" | "backlog" | "prioritization" | "sprints";
+const dashboardViews: DashboardView[] = ["overview", "backlog", "prioritization", "sprints"];
 const navItems = ["Overview", "Backlog", "Prioritization", "Sprints", "Reports", "AI Insights"];
 
 function delta(current: number, previous: number) {
@@ -243,7 +245,8 @@ function TrendChart({
 }
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<"overview" | "backlog" | "prioritization" | "sprints">("overview");
+  const [activeView, setActiveView] = useState<DashboardView>("overview");
+  const [viewInitialized, setViewInitialized] = useState(false);
   const [projectIndex, setProjectIndex] = useState(0);
   const [sprintIndex, setSprintIndex] = useState(7);
   const [range, setRange] = useState<4 | 8>(8);
@@ -264,6 +267,24 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
   const [sprintSearch, setSprintSearch] = useState("");
   const [sprintStatus, setSprintStatus] = useState("all");
+
+  useEffect(() => {
+    const restoreView = () => {
+      const requestedView = window.location.hash.slice(1).toLowerCase();
+      setActiveView(dashboardViews.includes(requestedView as DashboardView) ? requestedView as DashboardView : "overview");
+    };
+    restoreView();
+    setViewInitialized(true);
+    window.addEventListener("hashchange", restoreView);
+    return () => window.removeEventListener("hashchange", restoreView);
+  }, []);
+
+  useEffect(() => {
+    if (!viewInitialized) return;
+    const baseUrl = `${window.location.pathname}${window.location.search}`;
+    const nextUrl = activeView === "overview" ? baseUrl : `${baseUrl}#${activeView}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [activeView, viewInitialized]);
 
   const project = projects[projectIndex];
   const snapshot = project.history[sprintIndex];
@@ -345,7 +366,7 @@ export default function Home() {
         <nav>
           {navItems.map((item, index) => (
             <button key={item} className={(item.toLowerCase() === activeView) ? "nav-item active" : "nav-item"} onClick={() => {
-              if (item === "Overview" || item === "Backlog" || item === "Prioritization" || item === "Sprints") setActiveView(item.toLowerCase() as "overview" | "backlog" | "prioritization" | "sprints");
+              if (item === "Overview" || item === "Backlog" || item === "Prioritization" || item === "Sprints") setActiveView(item.toLowerCase() as DashboardView);
               else setNotice(`${item} is reserved for the next prototype increment.`);
             }}>
               <span className="nav-glyph" aria-hidden="true">{["⌂", "≡", "◇", "□", "↗", "✦"][index]}</span>

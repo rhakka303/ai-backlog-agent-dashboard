@@ -14,6 +14,7 @@ import {
 import { appendDecisionSnapshot, canEditPlannedSprint, compareDecisionSnapshots } from "./decisionHistory.mjs";
 import { appendPlanningEvent, canAddToIteration, connectorStateMessage, effectiveEstimate, iterationCapacityState, selectPlanningHorizon } from "./iterationPlanning.mjs";
 import { CONNECTOR_CAPABILITIES, RECONCILIATION_STATUSES, humanCanFinalize, reconcilePlan, validateReadOnlyConnectorOperation } from "./reconciliationRules.mjs";
+import { canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation } from "./authorityRules.mjs";
 
 type Item = { id: string; title: string; kind: string; state: string; status: string; points: number; age: number; currentIterationId: string | null };
 type Iteration = { id: string; name: string; startAt: string; endAt: string; lifecycle: "closed" | "active" | "upcoming"; sourceCommittedPoints: number };
@@ -28,6 +29,8 @@ type History = {
 };
 type PlanningEvent = { id: string; eventType: "sprint" | "capacity" | "estimate" | "reconciliation"; subjectId: string; at: string; version: number; actor: string; participants: string; [key: string]: unknown };
 type CapacityMap = Record<string, { target: number; max: number }>;
+type Session = { authenticated: boolean; displayName?: string; subjectId?: string; role: "product-owner" | "authorized-delegate" | "participant"; authoritySource?: string };
+type Delegation = { id: string; delegateName: string; startsAt: string; expiresAt: string; grantedBy: string; grantedAt: string; revokedAt: string | null };
 
 const initial = (item: Item): ScoreInput => ({
   business: 0, time: 0, risk: 0, jobSize: item.points || 0, confidence: "Low", evidence: "",
@@ -51,7 +54,11 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   const [compareFrom, setCompareFrom] = useState("");
   const [compareTo, setCompareTo] = useState("");
   const [notice, setNotice] = useState("");
-  const [actor, setActor] = useState("Steven");
+  const [session, setSession] = useState<Session>({ authenticated: false, role: "participant" });
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [delegation, setDelegation] = useState<Delegation | null>(null);
+  const [delegateName, setDelegateName] = useState("");
+  const [delegateHours, setDelegateHours] = useState(24);
   const [participants, setParticipants] = useState("Product Owner and Development Team");
   const [weights, setWeights] = useState({ business: 40, time: 25, risk: 35 });
   const [capacity, setCapacity] = useState<CapacityMap>(() => Object.fromEntries(planningHorizon.map((iteration, index) => [iteration.id, { target: 22 + index * 2, max: 28 + index * 2 }])));
@@ -59,6 +66,7 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   const [sourcePointRefresh, setSourcePointRefresh] = useState<Record<string, number>>({});
   const [sourceAssignments] = useState<Record<string, string | null>>(() => Object.fromEntries(items.map((item) => [item.id, item.currentIterationId])));
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const actor = session.displayName ?? "Unauthenticated user";
 
   useEffect(() => {
     try {
@@ -77,6 +85,11 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
   useEffect(() => { try { localStorage.setItem(storageKey, JSON.stringify({ inputs, history, planningHistory, capacity })); } catch { /* Keep the interactive session usable if storage is unavailable. */ } }, [storageKey, inputs, history, planningHistory, capacity]);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/session", { cache: "no-store" }).then(async (response) => { const data = await response.json() as Session; if (active) setSession(data); }).catch(() => { if (active) setSession({ authenticated: false, role: "participant" }); }).finally(() => { if (active) setSessionLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const change = <K extends keyof ScoreInput>(id: string, key: K, value: ScoreInput[K]) => setInputs((current) => ({ ...current, [id]: { ...current[id], [key]: value } }));
   const candidates = items.filter((item) => item.kind === comparisonLevel && selectedIds.has(item.id));
@@ -155,7 +168,8 @@ export default function PrioritizationView({ projectName, items, iterations }: {
     const x = inputs[item.id]; const sprint = x.plannedSprint as keyof typeof capacity;
     if (Object.values(capacity).some((value) => value.max < value.target)) { setNotice("A hard maximum cannot be lower than its capacity target."); return; }
     if (sprint in capacity && capacityState(sprint) === "over") { setNotice(`${sprintName(sprint)} is over its hard maximum. Move or re-estimate work before recording.`); return; }
-    if (!humanCanFinalize("product-owner")) { setNotice("Only the Product Owner or an authorized human delegate can finalize."); return; }
+    const now = new Date().toISOString();
+    if (!humanCanFinalize(session.role) || !canFinalizeDecision({ authenticated: session.authenticated, role: session.role, delegation, now })) { setNotice("An authenticated Product Owner or currently active authorized delegate is required to finalize."); return; }
     const errors = validateForRecording({ method, level: comparisonLevel, input: x, weights });
     if (errors.length) { setNotice(`${item.id}: ${errors[0]}`); return; }
     const nextHistory = appendDecisionSnapshot(history, {
@@ -181,6 +195,12 @@ export default function PrioritizationView({ projectName, items, iterations }: {
     setLastSyncAt(new Date().toISOString()); setConnectorState("synced");
     items.forEach((item) => addPlanningEvent({ eventType: "reconciliation", subjectId: item.id, plannedIterationId: inputs[item.id].plannedSprint, sourceIterationId: sourceAssignments[item.id], result: reconciliationFor(item).code }));
   };
+  const grantDelegation = () => {
+    if (session.role !== "product-owner" || !session.authenticated) { setNotice("Only the authenticated Product Owner can grant delegation."); return; }
+    const grantedAt = new Date(); const expiresAt = new Date(grantedAt.getTime() + delegateHours * 60 * 60 * 1000);
+    try { setDelegation(createDelegation({ id: crypto.randomUUID(), delegateName, startsAt: grantedAt.toISOString(), expiresAt: expiresAt.toISOString(), grantedBy: actor, grantedAt: grantedAt.toISOString() })); setNotice("Temporary delegation recorded for this governed prototype session."); } catch (error) { setNotice(error instanceof Error ? error.message : "Delegation could not be recorded."); }
+  };
+  const revokeActiveDelegation = () => { if (session.role !== "product-owner" || !session.authenticated || !delegation) return; setDelegation(revokeDelegation(delegation, new Date().toISOString())); setNotice("Temporary delegation revoked."); };
 
   return <section className="priority-workspace" aria-label={`${projectName} prioritization`}>
     <div className="priority-hero"><div><p className="eyebrow">Human-governed refinement</p><h2>Prioritize with evidence</h2><p>Source facts stay read-only. People enter scores, approve the decision, and plan a sprint.</p></div><div className="readonly-note"><strong>Read-only source boundary</strong><span>No Azure DevOps or Jira write-back</span></div></div>
@@ -196,7 +216,8 @@ export default function PrioritizationView({ projectName, items, iterations }: {
       <div className="method-explainer"><strong>{method} · {FORMULA_VERSIONS[method]}</strong><span>{method === "WSJF" ? "Sequence comparable work using Cost of Delay ÷ Job Size." : method === "Theme Scoring" ? "Compare strategic themes or features using weighted criteria." : "Compare each item’s percentage share of value with its percentage share of cost."}</span>{!methodIsCompatible(method, comparisonLevel) && <em className="validation-error">This method is incompatible with {comparisonLevel} comparison.</em>}</div>
       {method === "Theme Scoring" && <div className="weight-controls">{(["business", "time", "risk"] as const).map((key) => <label key={key}><span>{key}</span><input type="number" min="0" max="100" value={weights[key]} onChange={(e) => setWeights({...weights,[key]:Number(e.target.value)})}/></label>)}<strong className={weightValidation.valid ? "weight-ok" : "weight-bad"}>{weightValidation.message}</strong></div>}
     </div>
-    <div className="decision-context panel"><label><span>Decision owner</span><input value={actor} onChange={(e)=>setActor(e.target.value)} /></label><label><span>Participants</span><input value={participants} onChange={(e)=>setParticipants(e.target.value)} /></label><span>Human Product Owner authority required • AI cannot enter ratings or finalize • prototype does not yet authenticate or delegate users</span></div>
+    <div className="decision-context panel"><label><span>Authenticated decision owner</span><input value={sessionLoading ? "Checking Sites identity…" : actor} readOnly /></label><label><span>Participants</span><input value={participants} onChange={(e)=>setParticipants(e.target.value)} /></label><span>{session.authenticated ? `${session.role} • identity supplied by ${session.authoritySource}` : "Not authenticated • recording disabled"} • AI cannot enter ratings or finalize</span></div>
+    <section className="delegation-panel panel" aria-label="Temporary Product Owner delegation"><div><strong>Temporary human delegation</strong><span>Only the authenticated Product Owner may grant or revoke. Grants expire automatically and never authorize AI.</span></div><label>Delegate name<input value={delegateName} onChange={(event)=>setDelegateName(event.target.value)} disabled={session.role !== "product-owner"}/></label><label>Hours<input type="number" min="1" max="168" value={delegateHours} onChange={(event)=>setDelegateHours(Number(event.target.value))} disabled={session.role !== "product-owner"}/></label><button className="secondary-button" onClick={grantDelegation} disabled={session.role !== "product-owner" || !delegateName.trim()}>Grant temporary delegation</button>{delegation && <div className="delegation-status"><strong>{delegation.delegateName} • {delegationStatus(delegation,new Date().toISOString())}</strong><span>{delegation.startsAt} → {delegation.expiresAt} UTC • granted by {delegation.grantedBy}</span>{!delegation.revokedAt && <button className="secondary-button" onClick={revokeActiveDelegation}>Revoke</button>}</div>}<small>This prototype stores the delegation record in the active browser session. Production multi-user enforcement still requires shared server persistence and expanding the Sites access allowlist.</small></section>
 
     <section className="source-sync panel"><div><strong>{connectorStateMessage(connectorState)}</strong><span>Stable iteration IDs • {iterations.filter((iteration)=>iteration.lifecycle === "closed").length} closed iteration(s) retained in history • no source write-back</span><span>{estimateTotals.source} source-estimated • {estimateTotals.local} locally estimated • {estimateTotals.unestimated} unestimated</span><span>Last successful sync: {lastSyncAt ?? "Not refreshed this session"}</span><span>Connector operations: {CONNECTOR_CAPABILITIES.allowedOperations.join(" and ")} only • AI direct access disabled</span></div><label>Connector-state demonstration<select value={connectorState} onChange={(event)=>setConnectorState(event.target.value)}>{["synced","loading","empty","stale","error","renamed","reconciliation"].map((state)=><option key={state}>{state}</option>)}</select></label><button className="secondary-button" onClick={refreshSourceSnapshot}>Refresh and compare read-only source sample</button></section>
     <div className="reconciliation-legend" aria-label="Reconciliation status meanings">{Object.entries(RECONCILIATION_STATUSES).map(([code,label])=><span className={`reconciliation reconciliation-${code}`} key={code}>{label}</span>)}</div>

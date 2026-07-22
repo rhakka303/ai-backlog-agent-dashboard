@@ -4,6 +4,7 @@ export const FORMULA_VERSIONS = Object.freeze({
   "Theme Scoring": "theme-2.0",
   "Relative Weighting": "relative-2.0",
 });
+export const FRAMEWORK_VERSION = "prioritization-framework-2.0";
 
 const finiteInRange = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const evidenceIsSpecific = (evidence) => evidence.trim().length >= 12 && !/^(none|n\/a|test|placeholder|customer feedback and delivery evidence)$/i.test(evidence.trim());

@@ -14,7 +14,7 @@ import {
 import { appendDecisionSnapshot, canEditPlannedSprint, compareDecisionSnapshots } from "./decisionHistory.mjs";
 import { appendPlanningEvent, canAddToIteration, connectorStateMessage, effectiveEstimate, iterationCapacityState, selectPlanningHorizon } from "./iterationPlanning.mjs";
 import { CONNECTOR_CAPABILITIES, RECONCILIATION_STATUSES, humanCanFinalize, reconcilePlan, validateReadOnlyConnectorOperation } from "./reconciliationRules.mjs";
-import { authorityLabel, canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation, sanitizeActorRecords } from "./authorityRules.mjs";
+import { authorityLabel, canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation, sanitizeActorRecords, shouldResetPrototypeHistory } from "./authorityRules.mjs";
 
 type Item = { id: string; title: string; kind: string; state: string; status: string; points: number; age: number; currentIterationId: string | null };
 type Iteration = { id: string; name: string; startAt: string; endAt: string; lifecycle: "closed" | "active" | "upcoming"; sourceCommittedPoints: number };
@@ -38,6 +38,7 @@ const initial = (item: Item): ScoreInput => ({
 });
 
 const comparisonLevels: ComparisonLevel[] = ["Theme", "Feature", "Story", "Bug", "Enabler"];
+const STORAGE_VERSION = 2;
 const planningTones = ["sage", "mint", "blue", "violet"];
 const normalizeSavedSprint = (value: string, horizon: Iteration[]) => value === "Unassigned" ? "unassigned" : value === "Future backlog" ? "future-backlog" : horizon.find((iteration) => iteration.name === value)?.id ?? value;
 
@@ -66,6 +67,7 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   const [sourcePointRefresh, setSourcePointRefresh] = useState<Record<string, number>>({});
   const [sourceAssignments] = useState<Record<string, string | null>>(() => Object.fromEntries(items.map((item) => [item.id, item.currentIterationId])));
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [storageHydrated, setStorageHydrated] = useState(false);
   const actor = authorityLabel(session.role, session.authenticated);
 
   useEffect(() => {
@@ -73,18 +75,20 @@ export default function PrioritizationView({ projectName, items, iterations }: {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const data = JSON.parse(saved);
+        const resetHistory = shouldResetPrototypeHistory(data.storageVersion, STORAGE_VERSION);
         // Browser-local prototype state is restored only after hydration.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setInputs((current) => Object.fromEntries(Object.entries({ ...current, ...data.inputs }).map(([id, value]) => [id, { ...(value as ScoreInput), plannedSprint: normalizeSavedSprint((value as ScoreInput).plannedSprint, planningHorizon) }])));
-        setHistory(sanitizeActorRecords(data.history ?? [], "Product Owner") as History[]);
-        setPlanningHistory(sanitizeActorRecords(data.planningHistory ?? [], "Product Owner") as PlanningEvent[]);
+        setHistory(resetHistory ? [] : sanitizeActorRecords(data.history ?? [], "Product Owner") as History[]);
+        setPlanningHistory(resetHistory ? [] : sanitizeActorRecords(data.planningHistory ?? [], "Product Owner") as PlanningEvent[]);
         setCapacity((current) => ({ ...current, ...data.capacity }));
       }
     } catch { /* Browser storage is optional prototype persistence. */ }
+    finally { setStorageHydrated(true); }
   // Hydrate once per project key; the source horizon is immutable for this mounted sample snapshot.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
-  useEffect(() => { try { localStorage.setItem(storageKey, JSON.stringify({ inputs, history, planningHistory, capacity })); } catch { /* Keep the interactive session usable if storage is unavailable. */ } }, [storageKey, inputs, history, planningHistory, capacity]);
+  useEffect(() => { if (!storageHydrated) return; try { localStorage.setItem(storageKey, JSON.stringify({ storageVersion: STORAGE_VERSION, inputs, history, planningHistory, capacity })); } catch { /* Keep the interactive session usable if storage is unavailable. */ } }, [storageKey, storageHydrated, inputs, history, planningHistory, capacity]);
   useEffect(() => {
     let active = true;
     fetch("/api/session", { cache: "no-store" }).then(async (response) => {

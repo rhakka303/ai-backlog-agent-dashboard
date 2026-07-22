@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateScore, classifyEligibility, methodIsCompatible, validateForRecording, validateWeights } from "../app/prioritizationRules.mjs";
+import { FORMULA_VERSIONS, FRAMEWORK_VERSION, calculateScore, classifyEligibility, methodIsCompatible, validateForRecording, validateWeights } from "../app/prioritizationRules.mjs";
 
 const input = (overrides = {}) => ({ business: 10, time: 5, risk: 5, jobSize: 4, confidence: "High", evidence: "Customer interview CR-42", rationale: "", decision: "Accept", mandatory: false, ...overrides });
 const weights = { business: 40, time: 25, risk: 35 };
@@ -38,4 +38,8 @@ test("zero, invalid, and incompatible inputs return explicit validation errors",
 test("override decisions require a rationale", () => {
   assert.ok(validateForRecording({ method: "WSJF", level: "Story", input: input({ decision: "Override", rationale: "" }), weights }).includes("Override requires a rationale."));
   assert.equal(validateForRecording({ method: "WSJF", level: "Story", input: input({ decision: "Override", rationale: "PO approved dependency exception" }), weights }).length, 0);
+});
+test("formula and framework versions are explicit and stable", () => {
+  assert.equal(FORMULA_VERSIONS.WSJF, "wsjf-2.0");
+  assert.equal(FRAMEWORK_VERSION, "prioritization-framework-2.0");
 });

@@ -8,7 +8,7 @@ export function selectPlanningHorizon(iterations, size = 4) {
 
 export function appendPlanningEvent(history, draft) {
   const eventType = draft.eventType;
-  if (!["sprint", "capacity", "estimate"].includes(eventType)) throw new Error("Unsupported planning event type.");
+  if (!["sprint", "capacity", "estimate", "reconciliation"].includes(eventType)) throw new Error("Unsupported planning event type.");
   if (!draft.at?.endsWith("Z") || Number.isNaN(Date.parse(draft.at))) throw new Error("Planning event timestamp must be UTC ISO.");
   const version = history.filter((event) => event.eventType === eventType && event.subjectId === draft.subjectId).length + 1;
   const event = Object.freeze({ ...draft, version });

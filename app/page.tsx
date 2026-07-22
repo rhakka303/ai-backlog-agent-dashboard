@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import PrioritizationView from "./PrioritizationView";
 
 type Snapshot = {
@@ -122,6 +122,28 @@ const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
 
 type DashboardView = "overview" | "backlog" | "prioritization" | "sprints";
 const dashboardViews: DashboardView[] = ["overview", "backlog", "prioritization", "sprints"];
+function currentDashboardView(): DashboardView {
+  if (typeof window === "undefined") return "overview";
+  const requestedView = window.location.hash.slice(1).toLowerCase();
+  return dashboardViews.includes(requestedView as DashboardView) ? requestedView as DashboardView : "overview";
+}
+
+function subscribeToDashboardView(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  window.addEventListener("dashboard-view-change", onChange);
+  return () => {
+    window.removeEventListener("hashchange", onChange);
+    window.removeEventListener("dashboard-view-change", onChange);
+  };
+}
+
+function updateDashboardView(view: DashboardView) {
+  const baseUrl = `${window.location.pathname}${window.location.search}`;
+  const nextUrl = view === "overview" ? baseUrl : `${baseUrl}#${view}`;
+  window.history.replaceState(null, "", nextUrl);
+  window.dispatchEvent(new Event("dashboard-view-change"));
+}
+
 const navItems = ["Overview", "Backlog", "Prioritization", "Sprints", "Reports", "AI Insights"];
 
 function delta(current: number, previous: number) {
@@ -245,8 +267,8 @@ function TrendChart({
 }
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<DashboardView>("overview");
-  const [viewInitialized, setViewInitialized] = useState(false);
+  const activeView = useSyncExternalStore(subscribeToDashboardView, currentDashboardView, () => "overview");
+  const setActiveView = updateDashboardView;
   const [projectIndex, setProjectIndex] = useState(0);
   const [sprintIndex, setSprintIndex] = useState(7);
   const [range, setRange] = useState<4 | 8>(8);
@@ -268,23 +290,6 @@ export default function Home() {
   const [sprintSearch, setSprintSearch] = useState("");
   const [sprintStatus, setSprintStatus] = useState("all");
 
-  useEffect(() => {
-    const restoreView = () => {
-      const requestedView = window.location.hash.slice(1).toLowerCase();
-      setActiveView(dashboardViews.includes(requestedView as DashboardView) ? requestedView as DashboardView : "overview");
-    };
-    restoreView();
-    setViewInitialized(true);
-    window.addEventListener("hashchange", restoreView);
-    return () => window.removeEventListener("hashchange", restoreView);
-  }, []);
-
-  useEffect(() => {
-    if (!viewInitialized) return;
-    const baseUrl = `${window.location.pathname}${window.location.search}`;
-    const nextUrl = activeView === "overview" ? baseUrl : `${baseUrl}#${activeView}`;
-    window.history.replaceState(null, "", nextUrl);
-  }, [activeView, viewInitialized]);
 
   const project = projects[projectIndex];
   const snapshot = project.history[sprintIndex];

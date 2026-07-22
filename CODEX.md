@@ -10,7 +10,7 @@ Last refreshed: July 20, 2026.
 
 ## Authority and collaboration
 
-- Steven Gowan is the Product Owner and final decision-maker.
+- The repository owner (`rhakka303`) is the Product Owner and final decision-maker.
 - Codex is the sole AI implementer for dashboard application code, tests, deployment, Implementation History, and implementation evidence.
 - Claude may create or update Markdown documentation, independently audit GitHub work, and monitor or report security findings.
 - Claude findings are review input. Codex investigates them through the governed workflow.
@@ -43,7 +43,7 @@ Before changing anything:
 5. Do not create or modify anything until orientation is complete.
 6. Continue the existing issue and branch when appropriate; do not duplicate work.
 7. Keep Azure DevOps and Jira read-only.
-8. Leave owner Acceptance Verification, merge, and closure to Steven.
+8. Leave owner Acceptance Verification, merge, and closure to the repository owner.
 
 ## Active implementation priority
 

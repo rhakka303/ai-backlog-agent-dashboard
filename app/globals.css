@@ -154,6 +154,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focu
 .decision-context input { width:100%; height:36px; border:1px solid var(--border); border-radius:7px; padding:0 8px; }
 .decision-context > span { align-self:center; color:var(--muted); font-size:8px; }
 .source-sync { display:grid; grid-template-columns:1fr auto auto; gap:14px; align-items:center; }.source-sync > div { display:grid; gap:4px; }.source-sync span,.stable-id { color:var(--muted); font-size:8px; }.source-sync label { color:var(--muted); font-size:8px; font-weight:750; text-transform:uppercase; }.source-sync select { display:block; margin-top:4px; min-height:34px; border:1px solid var(--border); border-radius:7px; background:#fff; }
+.reconciliation-legend { display:flex; flex-wrap:wrap; gap:7px; }.reconciliation { padding:5px 8px; border:1px solid var(--border); border-radius:99px; background:#f4f6f5; color:#53616b; font-size:8px; font-weight:750; }.reconciliation-confirmed { background:#e0f0ec; color:#17675f; }.reconciliation-different,.reconciliation-unavailable { background:#fff0d6; color:#805513; }.reconciliation-removed { background:#f8dfd9; color:#8c3c2e; }
 .capacity-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .capacity-card { padding: 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
 .capacity-card > div:first-child { display: grid; grid-template-columns: 12px 1fr; gap: 2px 7px; align-items: center; }

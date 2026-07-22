@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FORMULA_VERSIONS, FRAMEWORK_VERSION, calculateScore, classifyEligibility, methodIsCompatible, validateForRecording, validateWeights } from "../app/prioritizationRules.mjs";
+import { FORMULA_VERSIONS, FRAMEWORK_VERSION, ALLOWED_JOB_SIZES, calculateScore, classifyEligibility, methodIsCompatible, validateForRecording, validateWeights } from "../app/prioritizationRules.mjs";
 import { appendDecisionSnapshot, canEditPlannedSprint, compareDecisionSnapshots } from "../app/decisionHistory.mjs";
 
-const input = (overrides = {}) => ({ business: 10, time: 5, risk: 5, jobSize: 4, confidence: "High", evidence: "Customer interview CR-42", rationale: "", decision: "Accept", mandatory: false, ...overrides });
+const input = (overrides = {}) => ({ business: 10, time: 5, risk: 5, jobSize: 5, confidence: "High", evidence: "Customer interview CR-42", rationale: "", decision: "Accept", mandatory: false, ...overrides });
 const weights = { business: 40, time: 25, risk: 35 };
 
-test("known WSJF dataset reproduces expected score", () => assert.equal(calculateScore("WSJF", input(), weights, [input()]), 5));
+test("known WSJF dataset reproduces expected score", () => assert.equal(calculateScore("WSJF", input(), weights, [input()]), 4));
 test("known Theme Scoring dataset applies corresponding weights", () => assert.equal(calculateScore("Theme Scoring", input(), weights, [input()]), 7));
 test("known Relative Weighting dataset exposes value and cost percentages", () => {
-  const first = input(); const second = input({ business: 5, time: 5, risk: 10, jobSize: 6 });
-  assert.deepEqual(calculateScore("Relative Weighting", first, weights, [first, second], true), { score: 1.25, valuePercent: 50, costPercent: 40 });
+  const first = input(); const second = input({ business: 5, time: 5, risk: 10, jobSize: 5 });
+  assert.deepEqual(calculateScore("Relative Weighting", first, weights, [first, second], true), { score: 1, valuePercent: 50, costPercent: 50 });
 });
 test("mandatory work is classified and never numerically scored", () => {
   const mandatory = input({ mandatory: true });
@@ -20,6 +20,13 @@ test("mandatory work is classified and never numerically scored", () => {
 test("eligibility rejects placeholder evidence and missing estimates", () => {
   assert.equal(classifyEligibility(input({ evidence: "placeholder" })).code, "insufficient");
   assert.equal(classifyEligibility(input({ jobSize: 0 })).code, "refinement");
+  assert.equal(classifyEligibility(input({ jobSize: null })).code, "refinement");
+  assert.equal(classifyEligibility(input({ jobSize: 4 })).code, "refinement");
+});
+test("Job Size uses the governed positive sequence only", () => {
+  assert.deepEqual(ALLOWED_JOB_SIZES, [1, 2, 3, 5, 8, 13]);
+  for (const jobSize of ALLOWED_JOB_SIZES) assert.equal(classifyEligibility(input({ jobSize })).code, "eligible");
+  for (const jobSize of [null, 0, -1, 4, 21]) assert.equal(calculateScore("WSJF", input({ jobSize }), weights, [input()]), null);
 });
 test("weight validation rejects out-of-range values and totals other than 100", () => {
   assert.equal(validateWeights(weights).valid, true);
@@ -50,7 +57,7 @@ const decision = (overrides = {}) => ({
   formulaVersion: "wsjf-2.0", frameworkVersion: "prioritization-framework-2.0", score: 5,
   currentRank: 2, recommendedRank: 1, decision: "Accept", sprint: "Sprint 25", rationale: "Evidence supports sequencing",
   actor: "Product Owner", participants: "Product Owner and Development Team", evidence: "Customer interview CR-42",
-  inputs: { business: 10, time: 5, risk: 5, jobSize: 4, confidence: "High" }, ...overrides,
+  inputs: { business: 10, time: 5, risk: 5, jobSize: 5, confidence: "High" }, ...overrides,
 });
 
 test("recording appends immutable UTC snapshots and corrections create versions", () => {

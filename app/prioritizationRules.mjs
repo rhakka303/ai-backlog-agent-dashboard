@@ -5,6 +5,7 @@ export const FORMULA_VERSIONS = Object.freeze({
   "Relative Weighting": "relative-2.0",
 });
 export const FRAMEWORK_VERSION = "prioritization-framework-2.0";
+export const ALLOWED_JOB_SIZES = Object.freeze([1, 2, 3, 5, 8, 13]);
 
 const finiteInRange = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const evidenceIsSpecific = (evidence) => evidence.trim().length >= 12 && !/^(none|n\/a|test|placeholder|customer feedback and delivery evidence)$/i.test(evidence.trim());
@@ -20,7 +21,7 @@ export function classifyEligibility(input) {
   if (input.mandatory) return { code: "mandatory", label: "Mandatory — not scored", valid: true };
   if (input.decision === "Defer") return { code: "deferred", label: "Deferred — not ranked", valid: false };
   if (!evidenceIsSpecific(input.evidence)) return { code: "insufficient", label: "Insufficient evidence", valid: false };
-  if (!finiteInRange(input.jobSize, 0.01, Number.MAX_SAFE_INTEGER)) return { code: "refinement", label: "Needs refinement — estimate required", valid: false };
+  if (!ALLOWED_JOB_SIZES.includes(input.jobSize)) return { code: "refinement", label: "Needs refinement — choose Job Size 1, 2, 3, 5, 8, or 13", valid: false };
   return { code: "eligible", label: "Eligible for scoring", valid: true };
 }
 
@@ -33,6 +34,7 @@ export function calculateScore(method, input, weights, population, details = fal
   if (input.mandatory) return details ? { score: null, valuePercent: 0, costPercent: 0 } : null;
   const ratingsValid = [input.business, input.time, input.risk].every((value) => finiteInRange(value, 0, 20));
   if (!ratingsValid) return details ? { score: null, valuePercent: 0, costPercent: 0 } : null;
+  if (!ALLOWED_JOB_SIZES.includes(input.jobSize)) return details ? { score: null, valuePercent: 0, costPercent: 0 } : null;
   let score = null; let valuePercent = 0; let costPercent = 0;
   if (method === "WSJF") score = input.jobSize > 0 ? (input.business + input.time + input.risk) / input.jobSize : null;
   if (method === "Theme Scoring" && validateWeights(weights).valid) score = (input.business * weights.business + input.time * weights.time + input.risk * weights.risk) / 100;
@@ -51,7 +53,7 @@ export function validateForRecording({ method, level, input, weights, includeDec
   if (!methodIsCompatible(method, level)) errors.push(`${method} cannot compare ${level} items.`);
   if (![input.business, input.time, input.risk].every((value) => finiteInRange(value, 0, 20))) errors.push("Ratings must be numbers from 0 through 20.");
   if (!input.mandatory && !evidenceIsSpecific(input.evidence)) errors.push("Provide specific evidence of at least 12 characters; placeholder text is not accepted.");
-  if (!input.mandatory && !finiteInRange(input.jobSize, 0.01, Number.MAX_SAFE_INTEGER)) errors.push("Provide a positive Job Size or local planning estimate.");
+  if (!input.mandatory && !ALLOWED_JOB_SIZES.includes(input.jobSize)) errors.push("Choose Job Size 1, 2, 3, 5, 8, or 13.");
   if (method === "Theme Scoring" && !validateWeights(weights).valid) errors.push(validateWeights(weights).message);
   if (method === "Relative Weighting" && input.jobSize <= 0) errors.push("Relative Weighting requires a positive cost estimate.");
   if (includeDecision && input.decision === "Draft") errors.push("Choose a human decision before recording.");

@@ -40,3 +40,7 @@ export function authorityLabel(role, authenticated = true) {
 export function sanitizeActorRecords(records, fallback = "Human participant") {
   return records.map((record) => Object.freeze({ ...record, actor: fallback }));
 }
+
+export function shouldResetPrototypeHistory(storedVersion, currentVersion) {
+  return !Number.isInteger(storedVersion) || storedVersion < currentVersion;
+}

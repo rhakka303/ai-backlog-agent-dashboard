@@ -14,7 +14,7 @@ import {
 import { appendDecisionSnapshot, canEditPlannedSprint, compareDecisionSnapshots } from "./decisionHistory.mjs";
 import { appendPlanningEvent, canAddToIteration, connectorStateMessage, effectiveEstimate, iterationCapacityState, selectPlanningHorizon } from "./iterationPlanning.mjs";
 import { CONNECTOR_CAPABILITIES, RECONCILIATION_STATUSES, humanCanFinalize, reconcilePlan, validateReadOnlyConnectorOperation } from "./reconciliationRules.mjs";
-import { canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation } from "./authorityRules.mjs";
+import { authorityLabel, canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation, sanitizeActorRecords } from "./authorityRules.mjs";
 
 type Item = { id: string; title: string; kind: string; state: string; status: string; points: number; age: number; currentIterationId: string | null };
 type Iteration = { id: string; name: string; startAt: string; endAt: string; lifecycle: "closed" | "active" | "upcoming"; sourceCommittedPoints: number };
@@ -29,7 +29,7 @@ type History = {
 };
 type PlanningEvent = { id: string; eventType: "sprint" | "capacity" | "estimate" | "reconciliation"; subjectId: string; at: string; version: number; actor: string; participants: string; [key: string]: unknown };
 type CapacityMap = Record<string, { target: number; max: number }>;
-type Session = { authenticated: boolean; displayName?: string; subjectId?: string; role: "product-owner" | "authorized-delegate" | "participant"; authoritySource?: string };
+type Session = { authenticated: boolean; subjectId?: string; role: "product-owner" | "authorized-delegate" | "participant"; authoritySource?: string };
 type Delegation = { id: string; delegateName: string; startsAt: string; expiresAt: string; grantedBy: string; grantedAt: string; revokedAt: string | null };
 
 const initial = (item: Item): ScoreInput => ({
@@ -66,7 +66,7 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   const [sourcePointRefresh, setSourcePointRefresh] = useState<Record<string, number>>({});
   const [sourceAssignments] = useState<Record<string, string | null>>(() => Object.fromEntries(items.map((item) => [item.id, item.currentIterationId])));
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
-  const actor = session.displayName ?? "Unauthenticated user";
+  const actor = authorityLabel(session.role, session.authenticated);
 
   useEffect(() => {
     try {
@@ -76,8 +76,8 @@ export default function PrioritizationView({ projectName, items, iterations }: {
         // Browser-local prototype state is restored only after hydration.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setInputs((current) => Object.fromEntries(Object.entries({ ...current, ...data.inputs }).map(([id, value]) => [id, { ...(value as ScoreInput), plannedSprint: normalizeSavedSprint((value as ScoreInput).plannedSprint, planningHorizon) }])));
-        setHistory(data.history ?? []);
-        setPlanningHistory(data.planningHistory ?? []);
+        setHistory(sanitizeActorRecords(data.history ?? [], "Product Owner") as History[]);
+        setPlanningHistory(sanitizeActorRecords(data.planningHistory ?? [], "Product Owner") as PlanningEvent[]);
         setCapacity((current) => ({ ...current, ...data.capacity }));
       }
     } catch { /* Browser storage is optional prototype persistence. */ }
@@ -87,7 +87,10 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   useEffect(() => { try { localStorage.setItem(storageKey, JSON.stringify({ inputs, history, planningHistory, capacity })); } catch { /* Keep the interactive session usable if storage is unavailable. */ } }, [storageKey, inputs, history, planningHistory, capacity]);
   useEffect(() => {
     let active = true;
-    fetch("/api/session", { cache: "no-store" }).then(async (response) => { const data = await response.json() as Session; if (active) setSession(data); }).catch(() => { if (active) setSession({ authenticated: false, role: "participant" }); }).finally(() => { if (active) setSessionLoading(false); });
+    fetch("/api/session", { cache: "no-store" }).then(async (response) => {
+      const data = await response.json() as Session;
+      if (active) setSession(data);
+    }).catch(() => { if (active) setSession({ authenticated: false, role: "participant" }); }).finally(() => { if (active) setSessionLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -198,9 +201,13 @@ export default function PrioritizationView({ projectName, items, iterations }: {
   const grantDelegation = () => {
     if (session.role !== "product-owner" || !session.authenticated) { setNotice("Only the authenticated Product Owner can grant delegation."); return; }
     const grantedAt = new Date(); const expiresAt = new Date(grantedAt.getTime() + delegateHours * 60 * 60 * 1000);
-    try { setDelegation(createDelegation({ id: crypto.randomUUID(), delegateName, startsAt: grantedAt.toISOString(), expiresAt: expiresAt.toISOString(), grantedBy: actor, grantedAt: grantedAt.toISOString() })); setNotice("Temporary delegation recorded for this governed prototype session."); } catch (error) { setNotice(error instanceof Error ? error.message : "Delegation could not be recorded."); }
+    try { setDelegation(createDelegation({ id: crypto.randomUUID(), delegateName, startsAt: grantedAt.toISOString(), expiresAt: expiresAt.toISOString(), grantedBy: actor, grantedAt: grantedAt.toISOString() })); setNotice("Temporary delegation recorded for this governed prototype session."); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Delegation could not be recorded."); }
   };
-  const revokeActiveDelegation = () => { if (session.role !== "product-owner" || !session.authenticated || !delegation) return; setDelegation(revokeDelegation(delegation, new Date().toISOString())); setNotice("Temporary delegation revoked."); };
+  const revokeActiveDelegation = () => {
+    if (session.role !== "product-owner" || !session.authenticated || !delegation) return;
+    setDelegation(revokeDelegation(delegation, new Date().toISOString())); setNotice("Temporary delegation revoked.");
+  };
 
   return <section className="priority-workspace" aria-label={`${projectName} prioritization`}>
     <div className="priority-hero"><div><p className="eyebrow">Human-governed refinement</p><h2>Prioritize with evidence</h2><p>Source facts stay read-only. People enter scores, approve the decision, and plan a sprint.</p></div><div className="readonly-note"><strong>Read-only source boundary</strong><span>No Azure DevOps or Jira write-back</span></div></div>

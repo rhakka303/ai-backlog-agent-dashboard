@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authorityLabel, canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation, sanitizeActorRecords } from "../app/authorityRules.mjs";
+import { authorityLabel, canFinalizeDecision, createDelegation, delegationStatus, revokeDelegation, sanitizeActorRecords, shouldResetPrototypeHistory } from "../app/authorityRules.mjs";
 
 const draft = { id: "d1", delegateName: "Delivery lead", startsAt: "2026-07-22T10:00:00.000Z", expiresAt: "2026-07-23T10:00:00.000Z", grantedBy: "Product Owner", grantedAt: "2026-07-22T09:00:00.000Z" };
 
@@ -10,3 +10,4 @@ test("revocation takes effect without altering the original grant", () => { cons
 test("invalid and overlong grants are rejected", () => { assert.throws(() => createDelegation({ ...draft, expiresAt: draft.startsAt }), /after its start/); assert.throws(() => createDelegation({ ...draft, expiresAt: "2026-08-22T10:00:00.000Z" }), /cannot exceed/); });
 test("visible authority labels never require a personal display name", () => { assert.equal(authorityLabel("product-owner"), "Product Owner"); assert.equal(authorityLabel("authorized-delegate"), "Authorized Delegate"); assert.equal(authorityLabel("participant"), "Participant"); assert.equal(authorityLabel("product-owner", false), "Unauthenticated user"); });
 test("previous browser records are sanitized to role-based actors", () => { const source = [{ id: "event-1", actor: "private value" }]; const sanitized = sanitizeActorRecords(source, "Product Owner"); assert.equal(sanitized[0].actor, "Product Owner"); assert.equal(source[0].actor, "private value"); assert.equal(Object.isFrozen(sanitized[0]), true); });
+test("privacy storage migration clears history exactly once", () => { assert.equal(shouldResetPrototypeHistory(undefined, 2), true); assert.equal(shouldResetPrototypeHistory(1, 2), true); assert.equal(shouldResetPrototypeHistory(2, 2), false); assert.equal(shouldResetPrototypeHistory(3, 2), false); });

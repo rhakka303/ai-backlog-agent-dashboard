@@ -18,7 +18,7 @@ type BacklogItem = {
   kind: "Story" | "Bug" | "Enabler";
   age: number;
   status: "Ready" | "Needs refinement" | "Blocked";
-  points: number;
+  points: number | null;
   state: string;
   currentIterationId: string | null;
 };
@@ -56,7 +56,7 @@ const sourceProjects: SourceProject[] = [
       { id: "CRM-231", title: "Improve bulk import errors", kind: "Bug", age: 19, status: "Needs refinement", points: 3 },
       { id: "CRM-238", title: "Create renewal activity view", kind: "Story", age: 12, status: "Ready", points: 5 },
       { id: "CRM-244", title: "Document API rate limits", kind: "Enabler", age: 7, status: "Ready", points: 2 },
-      { id: "CRM-249", title: "Expose customer timezone", kind: "Story", age: 3, status: "Ready", points: 0 },
+      { id: "CRM-249", title: "Expose customer timezone", kind: "Story", age: 3, status: "Ready", points: null },
     ],
   },
   {
@@ -78,7 +78,7 @@ const sourceProjects: SourceProject[] = [
       { id: "WEB-118", title: "Add preferred contact method", kind: "Story", age: 24, status: "Ready", points: 3 },
       { id: "WEB-124", title: "Instrument profile completion", kind: "Enabler", age: 18, status: "Ready", points: 2 },
       { id: "WEB-132", title: "Improve mobile invoice filters", kind: "Story", age: 11, status: "Ready", points: 5 },
-      { id: "WEB-141", title: "Add accessible error summary", kind: "Story", age: 6, status: "Ready", points: 0 },
+      { id: "WEB-141", title: "Add accessible error summary", kind: "Story", age: 6, status: "Ready", points: null },
     ],
   },
   {
@@ -100,7 +100,7 @@ const sourceProjects: SourceProject[] = [
       { id: "IAM-79", title: "Handle duplicate directory IDs", kind: "Bug", age: 46, status: "Needs refinement", points: 5 },
       { id: "IAM-88", title: "Pilot manager access reviews", kind: "Story", age: 31, status: "Ready", points: 8 },
       { id: "IAM-96", title: "Document break-glass process", kind: "Enabler", age: 20, status: "Ready", points: 3 },
-      { id: "IAM-103", title: "Add provisioning audit event", kind: "Story", age: 9, status: "Ready", points: 0 },
+      { id: "IAM-103", title: "Add provisioning audit event", kind: "Story", age: 9, status: "Ready", points: null },
     ],
   },
 ];
@@ -301,7 +301,7 @@ export default function Home() {
   const priorityOf = (item: BacklogItem) => item.status === "Blocked" ? "Critical" : item.age > 45 ? "High" : item.age > 20 ? "Medium" : "Low";
   const evidenceOf = (item: BacklogItem) => ({
     criteria: item.status === "Ready" || item.age % 2 === 0,
-    estimate: item.points > 0,
+    estimate: item.points !== null,
     dependencies: item.status !== "Blocked",
   });
   const isEvidenceReady = (item: BacklogItem) => Object.values(evidenceOf(item)).every(Boolean);
@@ -319,9 +319,9 @@ export default function Home() {
     .map((item, index) => ({ item, sprintStatus: sprintStatusOf(item, index) }))
     .filter(({ item }) => `${item.id} ${item.title}`.toLowerCase().includes(sprintSearch.toLowerCase()))
     .filter(({ sprintStatus: state }) => sprintStatus === "all" || state === sprintStatus);
-  const committedPoints = sprintPool.reduce((sum, item) => sum + item.points, 0);
-  const completedPoints = sprintPool.reduce((sum, item, index) => sum + (sprintStatusOf(item, index) === "Done" ? item.points : 0), 0);
-  const blockedPoints = sprintPool.reduce((sum, item, index) => sum + (sprintStatusOf(item, index) === "Blocked" ? item.points : 0), 0);
+  const committedPoints = sprintPool.reduce((sum, item) => sum + (item.points ?? 0), 0);
+  const completedPoints = sprintPool.reduce((sum, item, index) => sum + (sprintStatusOf(item, index) === "Done" ? (item.points ?? 0) : 0), 0);
+  const blockedPoints = sprintPool.reduce((sum, item, index) => sum + (sprintStatusOf(item, index) === "Blocked" ? (item.points ?? 0) : 0), 0);
   const scopeAdded = (sprintIndex + projectIndex) % 4 + 1;
   const scopeRemoved = (sprintIndex + projectIndex) % 2;
   const stateCounts = nativeStates.map((state) => ({ state, count: project.items.filter((item) => item.state === state).length })).filter((item) => item.count > 0);
@@ -487,7 +487,7 @@ export default function Home() {
                 <td data-label="Item"><button className="item-link" onClick={() => setSelectedItem(item)}><strong>{item.id}</strong><span>{item.title}</span></button></td>
                 <td data-label="Type">{item.kind}</td><td data-label="State"><span className={`native-state native-state-${item.state.toLowerCase().replaceAll(" ", "-")}`}>{item.state}</span></td><td data-label="Priority"><span className={`priority priority-${priorityOf(item).toLowerCase()}`}>{priorityOf(item)}</span></td>
                 <td data-label="Readiness"><span className={`status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{item.status}</span></td>
-                <td data-label="Age" className={item.age >= 30 ? "age-risk" : ""}>{item.age} days</td><td data-label="Points">{item.points}</td>
+                <td data-label="Age" className={item.age >= 30 ? "age-risk" : ""}>{item.age} days</td><td data-label="Points">{item.points ?? "Unestimated"}</td>
                 <td data-label="Readiness"><span className={isEvidenceReady(item) ? "readiness ready" : "readiness missing"}>{isEvidenceReady(item) ? "✓ Evidence ready" : `! ${Object.values(evidenceOf(item)).filter((value) => !value).length} missing`}</span></td>
                 <td><button className="row-open" onClick={() => setSelectedItem(item)} aria-label={`Open ${item.id}`}>›</button></td>
               </tr>)}</tbody>
@@ -516,7 +516,7 @@ export default function Home() {
 
           <div className="sprint-items-panel">
             <div className="sprint-items-heading"><div><h2>Sprint items</h2><p>{sprintItems.length} of {sprintPool.length} representative items</p></div><div className="sprint-controls"><label className="backlog-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search sprint items</span><input value={sprintSearch} onChange={(event) => setSprintSearch(event.target.value)} placeholder="Search sprint items" /></label><label><span className="sr-only">Filter sprint status</span><select value={sprintStatus} onChange={(event) => setSprintStatus(event.target.value)}><option value="all">All statuses</option><option>Done</option><option>In review</option><option>In progress</option><option>Blocked</option></select></label></div></div>
-            <div className="sprint-item-list">{sprintItems.map(({item, sprintStatus: state}) => <button className="sprint-item-row" key={item.id} onClick={() => setSelectedItem(item)}><span className={`native-state native-state-${item.state.toLowerCase().replaceAll(" ", "-")}`}>{item.state}</span><span className="sprint-item-title"><strong>{item.id}</strong>{item.title}</span><span className={`sprint-state sprint-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state === "Blocked" ? "! " : state === "Done" ? "✓ " : ""}{state}</span><span>{item.points} pts</span><span className={item.age > 30 ? "age-risk" : ""}>{item.age}d old</span><span aria-hidden="true">›</span></button>)}</div>
+            <div className="sprint-item-list">{sprintItems.map(({item, sprintStatus: state}) => <button className="sprint-item-row" key={item.id} onClick={() => setSelectedItem(item)}><span className={`native-state native-state-${item.state.toLowerCase().replaceAll(" ", "-")}`}>{item.state}</span><span className="sprint-item-title"><strong>{item.id}</strong>{item.title}</span><span className={`sprint-state sprint-state-${state.toLowerCase().replaceAll(" ", "-")}`}>{state === "Blocked" ? "! " : state === "Done" ? "✓ " : ""}{state}</span><span>{item.points === null ? "Unestimated" : `${item.points} pts`}</span><span className={item.age > 30 ? "age-risk" : ""}>{item.age}d old</span><span aria-hidden="true">›</span></button>)}</div>
             {sprintItems.length === 0 && <div className="empty-state"><strong>No matching sprint items</strong><span>Change the search or status filter.</span><button className="secondary-button" onClick={() => { setSprintSearch(""); setSprintStatus("all"); }}>Clear filters</button></div>}
           </div>
           <footer className="prototype-footer"><span><i /> Representative sprint • No live system connected</span><button onClick={() => setActiveView("backlog")}>Open Backlog</button></footer>
@@ -527,7 +527,7 @@ export default function Home() {
       <aside className={selectedItem ? "review-drawer open" : "review-drawer"} aria-hidden={!selectedItem} aria-label="Backlog item details">
         {selectedItem && <><div className="drawer-heading"><div><p className="eyebrow">{selectedItem.id} • {selectedItem.kind}</p><h2>{selectedItem.title}</h2><span>{priorityOf(selectedItem)} priority</span></div><button className="icon-button" onClick={() => setSelectedItem(null)} aria-label="Close item details">×</button></div>
         <p className="item-description">A representative {selectedItem.kind.toLowerCase()} for the {project.name} backlog. Connect your source system later to display the full description, owner, and discussion history.</p>
-        <div className="detail-grid"><div><span>Native state</span><strong>{selectedItem.state}</strong></div><div><span>Readiness</span><strong>{selectedItem.status}</strong></div><div><span>Age</span><strong>{selectedItem.age} days</strong></div><div><span>Estimate</span><strong>{selectedItem.points} points</strong></div><div><span>Priority</span><strong>{priorityOf(selectedItem)}</strong></div></div>
+        <div className="detail-grid"><div><span>Native state</span><strong>{selectedItem.state}</strong></div><div><span>Readiness</span><strong>{selectedItem.status}</strong></div><div><span>Age</span><strong>{selectedItem.age} days</strong></div><div><span>Estimate</span><strong>{selectedItem.points === null ? "Unestimated" : `${selectedItem.points} points`}</strong></div><div><span>Priority</span><strong>{priorityOf(selectedItem)}</strong></div></div>
         {activeView === "sprints" ? <section className="evidence-panel"><p className="eyebrow">Delivery risk</p><h3>Risk evidence</h3>{Object.entries({ "Blocked dependency": selectedItem.status === "Blocked", "Aging over 30 days": selectedItem.age > 30, "High or critical priority": ["High", "Critical"].includes(priorityOf(selectedItem)) }).map(([label, risk]) => <div className="evidence-row" key={label}><span className={risk ? "evidence-icon absent" : "evidence-icon present"}>{risk ? "!" : "✓"}</span><span>{label}</span><strong>{risk ? "Risk found" : "Clear"}</strong></div>)}<p className="evidence-note">Risk evidence uses explicit labels and symbols so it never depends on color alone.</p></section> : <section className="evidence-panel"><p className="eyebrow">Definition of ready</p><h3>Readiness evidence</h3>{Object.entries({ "Acceptance criteria": evidenceOf(selectedItem).criteria, "Estimate confirmed": evidenceOf(selectedItem).estimate, "Dependencies clear": evidenceOf(selectedItem).dependencies }).map(([label, present]) => <div className="evidence-row" key={label}><span className={present ? "evidence-icon present" : "evidence-icon absent"}>{present ? "✓" : "!"}</span><span>{label}</span><strong>{present ? "Present" : "Missing"}</strong></div>)}<p className="evidence-note">Readiness is calculated from these checks, so missing evidence is never communicated by color alone.</p></section>}</>}
       </aside>
 
@@ -549,7 +549,7 @@ export default function Home() {
             <article className="backlog-item" key={item.id}>
               <div className="item-top"><strong>{item.id}</strong><span className={`status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{item.status}</span></div>
               <h3>{item.title}</h3>
-              <div className="item-meta"><span>{item.kind}</span><span>{item.points} points</span><span className={item.age > 30 ? "old" : ""}>{item.age} days old</span></div>
+              <div className="item-meta"><span>{item.kind}</span><span>{item.points === null ? "Unestimated" : `${item.points} points`}</span><span className={item.age > 30 ? "old" : ""}>{item.age} days old</span></div>
             </article>
           ))}
           {visibleItems.length === 0 && <div className="empty-state"><strong>No matching items</strong><span>Try a different filter or search term.</span></div>}

@@ -178,6 +178,12 @@ Required workflow:
 
 Issue → acceptance criteria → branch → intentional commits → draft PR → detailed Implementation History → separate owner Acceptance Verification → owner merge → owner closure.
 
+GitHub Project board requirements:
+
+- Every new issue Codex creates must be added to the repository's GitHub Project board immediately. Creating the issue is not complete until its board item exists.
+- When Codex finishes the approved coding work and the issue is ready for Product Owner review and Claude's independent audit, Codex must move the existing board item to **Review** before posting the handoff.
+- Moving an issue to **Review** does not constitute Product Owner Acceptance Verification, acceptance, merge approval, closure, or completion.
+
 Memory responsibilities:
 
 - `CODEX.md`: Codex's durable restart memory.

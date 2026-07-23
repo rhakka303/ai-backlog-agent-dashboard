@@ -54,16 +54,10 @@ const normalizeSavedSprint = (value: string, horizon: Iteration[]) => value === 
 
 export default function PrioritizationView({
   projectName,
-  projectNames,
-  selectedProjectIndex,
-  onProjectChange,
   items,
   iterations,
 }: {
   projectName: string;
-  projectNames: string[];
-  selectedProjectIndex: number;
-  onProjectChange: (nextIndex: number) => void;
   items: Item[];
   iterations: Iteration[];
 }) {
@@ -241,7 +235,7 @@ export default function PrioritizationView({
     <div className="priority-hero"><div><p className="eyebrow">Human-governed refinement</p><h2>Prioritize with evidence</h2><p>Source facts stay read-only. People enter scores, approve the decision, and plan a sprint.</p></div><div className="readonly-note"><strong>Read-only source boundary</strong><span>No Azure DevOps or Jira write-back</span></div></div>
 
     <div className="comparison-controls panel">
-      <label><span>Project</span><select value={selectedProjectIndex} onChange={(event) => onProjectChange(Number(event.target.value))} aria-label="Project">{projectNames.map((name, index) => <option key={name} value={index}>{name}</option>)}</select></label>
+      <label><span>Project</span><input value={projectName} readOnly aria-label="Selected project" /></label>
       <label><span>Comparison level</span><select value={comparisonLevel} onChange={(event) => selectLevel(event.target.value as ComparisonLevel)}>{comparisonLevels.map((level) => <option key={level} disabled={!availableLevels.includes(level)}>{level}</option>)}</select></label>
       <fieldset><legend>Comparable candidates</legend><div className="candidate-options">{items.filter((item) => item.kind === comparisonLevel).map((item) => <label key={item.id}><input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleCandidate(item.id)} />{item.id}</label>)}</div><small>{candidates.length} selected</small></fieldset>
     </div>

@@ -7,3 +7,11 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+
+# Private, local-only assistant continuity notes
+CLAUDEMEMORY.md
+claudememory.md
+CODEXMEMORY.md
+
+# Private, local-only personal backlog tracker (not repo documentation)
+backlog-tracker/

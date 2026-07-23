@@ -482,7 +482,7 @@ export default function Home() {
         <footer className="prototype-footer">
           <span><i /> Sample data • No external systems connected</span>
           <button onClick={() => setGuideOpen(true)}>Implementation notes</button>
-        </footer></> : activeView === "prioritization" ? <PrioritizationView key={project.shortName} projectName={project.name} items={project.items} iterations={project.iterations} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
+        </footer></> : activeView === "prioritization" ? <PrioritizationView key={project.shortName} projectName={project.name} projectNames={projects.map((item) => item.name)} selectedProjectIndex={projectIndex} onProjectChange={changeProject} items={project.items} iterations={project.iterations} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
           <div className="backlog-intro">
             <div><p className="eyebrow">{project.shortName} delivery inventory</p><h2>Refine with evidence, not instinct</h2><p>Search, sort, and inspect representative sample items. Readiness is based on visible evidence.</p></div>
             <span className="sample-badge">Sample data</span>

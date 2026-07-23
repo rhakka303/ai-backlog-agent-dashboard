@@ -230,6 +230,35 @@ A future human-governed AI Sprint-planning direction has been discussed but is n
 
 Issue #46 tracks the documentation-only refresh that added `CODEX.md` and updated this file. No application behavior is part of #46.
 
+## Claude <-> Codex handoff protocol
+
+Issue [#57](https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/57) (`[Handoff] Claude <-> Codex operational handoff surface`) is the shared handoff surface between Claude and Codex, reducing manual copy-paste between the repository owner's separate chat sessions while keeping GitHub authoritative. Full design rationale: [#56](https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/56).
+
+**Why an Issue, not a Discussion or a file.** A tracked `handoff.md` file would require a branch and pull request per handoff under this repository's branch-protection ruleset. A GitHub Discussion was rejected after Codex verified its connected GitHub tools have no Discussions access at all. A dedicated Issue uses a mechanism both agents already have proven, reliable access to.
+
+**Structure.** The issue body is the current Active Task Card (overwritten as state changes: Handoff ID, project, timestamps, prepared by, from/intended recipient, agent statuses, owner approval, supersedes-handoff reference, Owner Request, Current Authoritative State, Findings, Work Completed, Recommended Status Changes, Risks, Required Next Action, Exact Prompt for the receiving agent). Comments are the append-only Handoff Log.
+
+**Mandatory rules:**
+
+- **Human Gate.** The active agent must show findings, recommended status changes, and the exact next-step prompt in chat and receive the owner's explicit approval before posting anything to issue #57.
+- **Active/Standby.** Only one agent is Active at a time. Standby means authorized work is complete, no further project changes will be made, and future work has not yet been accepted.
+- **Independent reorientation required.** The receiving agent must verify against live GitHub state (target issue, PR, branch, commits, deployment) before acting. The handoff issue accelerates orientation; it never replaces verification.
+- **Completion claims require verification, not trust.** Treat any "this is done" statement, from either agent or the owner's relay of one, as a claim to independently check, not an established fact. This rule exists because it already caught real defects once (a Project Board completion claim that turned out to have real gaps once audited).
+- **Evidence levels.** Every finding is tagged Verified, Reported, Inferred, or Unknown.
+- **Status changes are recommendations only.** No agent updates a product issue's status, a PR, or the Project Board merely because it recommended a change. Owner approval must be recorded first.
+- **No product mutations from editing the handoff issue itself.** Posting to #57 is communication only; it never itself authorizes source changes, GitHub status changes, Project Board changes, merges, or closures.
+- **Public-information boundary.** Never post personal email addresses, credentials, tokens, private local paths, confidential information, or unnecessary personal identifiers to #57 -- it is public.
+- **Owner approval reference.** Chat approval usually has no durable public URL. Record it as the exact owner-approved statement plus a UTC timestamp, unless the owner explicitly records approval on GitHub instead.
+- **Failure fallback.** If issue #57 becomes unavailable or inaccessible to either agent, fall back to posting on the relevant product issue's own comments -- never rely on silent chat memory instead.
+- **Template size control.** The Active Task Card holds only the current assignment. Link to the authoritative issue/PR for detailed evidence rather than duplicating it.
+- **Supersession.** Every new Handoff ID explicitly supersedes the prior active handoff, so two assignments never appear simultaneously active.
+- **Correction protocol.** If either agent finds the handoff issue conflicts with live GitHub state, say so immediately, cite the real GitHub source, and pause rather than continue from stale information.
+- **Handoff Log entries are permanent once posted.** Never edit or delete a comment on #57. To correct a mistake, post a new comment that references and corrects the original.
+- **Issue #57 itself never closes.** It is the permanent operational surface, not a completable task.
+- **Excluded from the Project Board.** Issue #57 is not added to Project #1, so it never appears in Board, Roadmap, or Insights views.
+
+**Framework Improvement Trigger.** When either agent discovers drift, incomplete verification, ambiguous authority, a failed handoff, duplicated work, an unsafe permission, or a misleading completion claim, it must: document the incident, explain the governance weakness, propose a specific protocol improvement, obtain the owner's approval, and update this governing section separately from the active handoff on #57.
+
 ## Maintaining this memory
 
 Update this file when a durable project decision changes, a major tab is completed, governance changes, or a production limitation is resolved.

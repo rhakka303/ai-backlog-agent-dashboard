@@ -52,7 +52,15 @@ const STORAGE_VERSION = 3;
 const planningTones = ["sage", "mint", "blue", "violet"];
 const normalizeSavedSprint = (value: string, horizon: Iteration[]) => value === "Unassigned" ? "unassigned" : value === "Future backlog" ? "future-backlog" : horizon.find((iteration) => iteration.name === value)?.id ?? value;
 
-export default function PrioritizationView({ projectName, items, iterations }: { projectName: string; items: Item[]; iterations: Iteration[] }) {
+export default function PrioritizationView({
+  projectName,
+  items,
+  iterations,
+}: {
+  projectName: string;
+  items: Item[];
+  iterations: Iteration[];
+}) {
   const storageKey = `priority-prototype:${projectName}`;
   const planningHorizon = selectPlanningHorizon(iterations, 4) as Iteration[];
   const availableLevels = comparisonLevels.filter((level) => items.some((item) => item.kind === level));

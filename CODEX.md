@@ -1,203 +1,199 @@
-# CODEX.md — Current Operational Handoff
+# CODEX.md — Codex Durable Project Memory
 
 ## Purpose
 
-This tracked file gives a new Codex chat a concise starting point. Read it after `AGENTS.md` and `CONTRIBUTING.md`, then verify every status statement against live GitHub issues, comments, branches, and pull requests before acting.
+This tracked file is Codex's durable restart memory for the AI Backlog Agent Dashboard. A new Codex chat must read it after `AGENTS.md` and `CONTRIBUTING.md`, then verify every status statement against live GitHub before acting.
 
-This file is a summary, not the delivery system of record. GitHub issues, pull requests, commits, repository documentation, and deployed evidence remain authoritative.
+This file is not the delivery system of record. GitHub issues, pull requests, commits, checks, documentation, and deployment evidence remain authoritative.
 
-Last refreshed: July 20, 2026.
+Issue #57 is a controlled Claude-to-Codex operational handoff channel. It contains assignments, audits, findings, and exact next prompts; it is not a substitute for this durable memory.
+
+Last refreshed: July 23, 2026.
 
 ## Authority and collaboration
 
-- The repository owner (`rhakka303`) is the Product Owner and final decision-maker.
-- Codex is the sole AI implementer for dashboard application code, tests, deployment, Implementation History, and implementation evidence.
-- Claude may create or update Markdown documentation, independently audit GitHub work, and monitor or report security findings.
-- Claude findings are review input. Codex investigates them through the governed workflow.
-- Neither AI may provide the repository owner's Acceptance Verification, merge unfinished work, close unfinished issues, or declare final product acceptance.
-- Azure DevOps and Jira are strictly read-only. The dashboard may reconcile and display source changes but never write back.
-
-## Product position
-
-The AI Backlog Agent Dashboard is currently a working prototype, not a production AI agent.
-
-Its permanent product principles include:
-
-- Refine with evidence, not instinct.
-- Evidence before advice.
-- AI may summarize, explain, flag, and propose.
-- Humans supply accountable ratings, make final decisions, and record rationale.
-- Local planning decisions must remain separate from source-owned values.
-- Every accepted decision should be traceable to who decided, when, and why.
-
-The selected visual direction is **Calm Operations**. The owner chose this direction from multiple UX concepts; that choice is a product decision, not an arbitrary generated style.
+- The repository owner is the Product Owner and final decision-maker.
+- Codex is the sole AI implementer for dashboard application code, tests, deployments, detailed Implementation History, and implementation evidence.
+- Claude may update Markdown documentation, independently audit GitHub work, and monitor or report security findings.
+- Claude findings are independent review input. Codex investigates and implements through the governed workflow.
+- Neither AI may provide owner Acceptance Verification, accept its own work, merge unfinished work, close unfinished issues, or declare final product acceptance.
+- Use role-based language in public records. Do not place the owner's full name or personal email in files, commits, comments, seeded data, screenshots, or handoff notes.
+- Azure DevOps and Jira are strictly read-only. Reconciliation may detect and display source changes but never write back.
 
 ## Required new-chat orientation
 
 Before changing anything:
 
 1. Read `AGENTS.md`, `CONTRIBUTING.md`, this file, `docs/PRODUCT_VISION.md`, and `docs/ROADMAP.md`.
-2. Inspect all open issues and all draft/open pull requests.
-3. Read the complete target issue, comments, prerequisites, acceptance criteria, branch, commits, and PR.
-4. Report current status and the recommended next implementation step.
-5. Do not create or modify anything until orientation is complete.
-6. Continue the existing issue and branch when appropriate; do not duplicate work.
-7. Keep Azure DevOps and Jira read-only.
-8. Leave owner Acceptance Verification, merge, and closure to the repository owner.
+2. Inspect every open issue and every draft/open pull request.
+3. Read the newest entries in issue #57 for active agent-to-agent instructions.
+4. Read the complete target issue, comments, acceptance criteria, branch, commits, reviews, checks, and implementation evidence.
+5. Verify repository, CI, and live deployment state rather than trusting this summary alone.
+6. Report the orientation before modifying or posting anything.
+7. Continue existing issues, branches, and PRs; do not create duplicates.
+8. Keep owner Acceptance Verification, merge, and closure separate from implementation.
+9. Do not begin a newer Epic child merely because its issue exists. Follow the approved one-child-at-a-time handoff.
+10. Keep source-system integrations read-only.
 
-## Active implementation priority
+## Product position
 
-Issue [#15](https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/15) and draft PR [#16](https://github.com/rhakka303/ai-backlog-agent-dashboard/pull/16) remain the active implementation priority on branch `feature/prioritization-workspace`.
+The dashboard is a working portfolio-quality prototype and a designed human-governed AI backlog agent. It is not production-ready and is not yet a live Azure DevOps/Jira or LLM integration.
 
-Do not begin Epic #21 or Epic #31 application implementation merely because their issues exist. Do not merge PR #16 or close #15 until all remaining acceptance criteria pass and the owner posts separate Acceptance Verification.
+Permanent principles:
 
-## Epic visibility initiative
+- Refine with evidence, not instinct.
+- Evidence before advice.
+- AI may summarize, explain, flag, and propose.
+- Humans supply accountable inputs, make final decisions, and record rationale.
+- Source facts, deterministic calculations, dashboard-local inputs, human decisions, and future AI output remain distinguishable.
+- Local planning decisions never write to the source system.
+- The selected visual direction is **Calm Operations**.
 
-Parent [#21](https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/21) makes Epic a first-class concept across the prototype.
+## Current work streams
 
-| Issue | Scope |
-|---|---|
-| #22 | Shared Epic model and representative data |
-| #23 | Global Epic selection and filtering |
-| #24 | Epic health and progress in Overview |
-| #25 | Epic grouping in Backlog |
-| #26 | Epic comparison in Prioritization; gated on #15/#16 |
-| #27 | Epic distribution in Sprints |
-| #28 | Epic support contract for Reports |
-| #29 | AI Epic evidence contract |
-| #30 | Cross-dashboard Epic validation |
+### Prioritization — issue #15 / draft PR #16
 
-Important dependency: #22 must extend the canonical model established by #32. It must not create a competing backlog source of truth and should not begin until #32 is owner-accepted.
+- Issue #15 remains open.
+- Draft PR #16 remains open on `feature/prioritization-workspace`.
+- The original 81-check Codex audit reported 34 Pass, 6 Partial, and 41 Fail. Those totals describe the pre-rework state and must not be treated as the current implementation result.
+- Codex subsequently implemented the failed/partial batches on the existing branch, with targeted tests and repeated deployments.
+- Claude's read-only audits through HO-009 found the reviewed fixes real, narrow, and free of the checked regressions.
+- The live prototype reached Site version 16 for the latest Prioritization fixes in this work period.
+- Issue #15 and PR #16 still require the Product Owner's separate Acceptance Verification and merge decision.
 
-## Shared-data foundation initiative
+Important implemented corrections include:
 
-Parent [#31](https://github.com/rhakka303/ai-backlog-agent-dashboard/issues/31) establishes the canonical backlog, Sprint configuration, capacity, sample data, historical snapshots, reporting inputs, and refresh/local-overlay contract.
+- Mandatory work is classified and stored as not scored rather than using fake score `999`.
+- Eligibility gates calculation, ranking, decisions, and recording.
+- Current Rank and Recommended Rank are explicit.
+- Override requires rationale.
+- Evidence validation rejects placeholder evidence.
+- Relative Weighting displays value and cost percentages.
+- Decision History snapshots retain inputs, evidence, rank, version, formula, and framework data.
+- Missing Job Size is `null` / **Unestimated**, never zero.
+- Local Job Size uses only `1, 2, 3, 5, 8, 13`.
+- Existing prototype history received a one-time schema reset.
+- Visible actors use role labels; authenticated identity remains internal.
+- Decision History displays only the selected human-readable method while retaining version data internally.
+- Planning Audit Events render readable summaries rather than raw JSON.
+- Numeric scoring fields normalize leading-zero entries such as `012` to `12`.
+- Overview, Backlog, Prioritization, and Sprints persist their active tab across refresh through URL-backed state.
 
-| Issue | Scope |
-|---|---|
-| #32 | Canonical work-item foundation model |
-| #33 | Profile and System Settings structure |
-| #34 | Master Sprint configuration |
-| #35 | Sprint 1 through rolling horizon generation |
-| #36 | Governed capacity configuration |
-| #37 | Canonical representative sample backlog |
-| #38 | Historical Sprint snapshots and scope history |
-| #39 | Backlog as complete visible inventory |
-| #40 | Overview migration to canonical data |
-| #41 | Sprints migration and selector/item-membership defect fix |
-| #42 | Prioritization migration to rolling 90-day horizon |
-| #43 | Shared Reporting and burnup inputs |
-| #44 | Simulated read-only synchronization/local-overlay behavior |
-| #45 | Final cross-dashboard integration validation |
+Scope boundaries:
 
-Foundational sequence:
+- Epic comparison belongs to #26, not #15.
+- Decision History's labeled-column table redesign belongs to #48, not #15.
+- Cross-view Points/Estimate/Job Size terminology is issue #59.
+- Do not merge PR #16 or close #15 without owner Acceptance Verification.
 
-1. Establish Settings and configuration structure (#33, #34, #36).
-2. Establish the canonical work-item model (#32).
-3. Extend that model with Epic relationships (#22).
-4. Generate the Sprint calendar (#35).
-5. Build canonical sample data (#37) and historical snapshots (#38).
-6. Make Backlog the complete visible inventory (#39).
-7. Migrate Overview, Sprints, Prioritization, reporting inputs, and simulated refresh (#40-#44).
-8. Complete final integration validation (#45).
+### Canonical work-item foundation — issue #32 / draft PR #60
 
-Follow each issue's actual dependency section if it is more specific than this summary.
+- Issue #32 remains open and is the only Epic #31 child started in this sequence.
+- Draft PR #60 remains open on `agent/canonical-work-item-foundation`.
+- The branch was created from `main`, not from PR #16.
+- The implementation adds the common source-independent model for Epic, Story, Bug, and Enabler; stable identity; source/local ownership boundaries; deterministic Age and Cycle Time; governed estimate values; explicit unestimated state; separate source/local Sprint IDs; local-overlay preservation; and a generic #22 extension path.
+- Local validation passed: lint, production build, and 11/11 tests.
+- Detailed Implementation History is on #32.
+- Claude's HO-012 audit checked all 20 criteria against source and found no blocker or scope leakage.
+- PR #60 remains draft and #32 remains open pending owner Acceptance Verification and merge decision.
+- Do not start #33 or a later child until the owner explicitly authorizes it after #32's governed review.
 
-## Confirmed prototype data decisions
+### Continuous integration — issue #63
 
-The foundation issues capture these accepted design inputs:
+- Issue #63 is closed after owner verification.
+- PR #62 added `package-lock.json` and is merged.
+- PR #61 added `.github/workflows/ci.yml` and is merged.
+- CI now runs on every pull request and every push to `main`.
+- The verification sequence is:
+  1. `npm run install:ci`
+  2. `npm run lint`
+  3. `npm test` (includes the production build)
+- A real GitHub Actions `verify` run passed after the lockfile prerequisite merged.
+- Deployment/CD remains manual and separate.
+- Making CI a required branch-protection status check remains follow-up scope related to #53.
 
-- Fixed sample calculation time: July 20, 2026 at 12:00 PM in `America/Los_Angeles`.
+### Codex memory refresh — issue #49 / draft PR #50
+
+- Issue #49 and draft PR #50 own this `CODEX.md` refresh.
+- Branch: `docs/codex-handoff-issue-15-audit`.
+- This is documentation-only. It must not modify application behavior or another work stream.
+- The owner must merge PR #50 before a new chat reading `main` receives this refreshed memory.
+
+## Operational handoff history
+
+Issue #57 is permanent and append-only. During this work period:
+
+- HO-004 reported the visible personal-name privacy regression.
+- HO-005 through HO-009 recorded Prioritization fixes and independent audits.
+- HO-010 authorized issue #32 only.
+- HO-011 recorded #32 implementation.
+- HO-012 reported Claude's independent #32 audit with no blockers.
+- HO-013 requested the CI lockfile prerequisite.
+- HO-014 recorded Codex's lockfile implementation.
+
+Always read entries newer than HO-014 because they may supersede this snapshot.
+
+## Epic and dependency map
+
+Epic #21 (#22-#30) adds first-class Epic visibility. Epic #31 (#32-#45) establishes the shared backlog, Settings, Sprint calendar, capacity, sample data, history, cross-view migrations, reporting inputs, and simulated read-only refresh.
+
+Critical boundaries:
+
+- #32 is the canonical common work-item model.
+- #22 must extend #32 and must not create a parallel model.
+- #26 remains gated on accepted #15/PR #16.
+- #37 depends on the canonical model, Epic extension, Sprint calendar, and capacity rules.
+- #39 makes Backlog the complete visible inventory consumed by later view migrations.
+- #41 owns the Sprints selector/item-membership defect.
+- #42 migrates Prioritization to the shared model and depends on accepted #15/PR #16.
+- #45 is the final integration gate.
+- Follow each issue's current dependency section over any older summary.
+
+## Confirmed data decisions
+
+- Fixed sample calculation timestamp: July 20, 2026 at 12:00 PM in `America/Los_Angeles`.
 - Sprint 1 anchor: August 25, 2025.
-- Default cadence: two weeks; configuration supports one, two, three, or four weeks.
-- Sprint 24 is Current: July 13-26, 2026.
-- Sprint 25 is Next: July 27-August 9, 2026.
-- The default 90-day planning horizon includes Sprints 25-31 because Sprint 31 overlaps the boundary.
-- Work beyond the horizon is labeled `Future Backlog`.
-- Prototype team: five developers.
-- Sprint Targets vary approximately 42-48 points.
-- Hard Maximums vary approximately 48-57 points, average near 52, and never reach 60 in the representative data.
-- At or below Target is within capacity.
-- Above Target through Hard Maximum, inclusive, is an allowed warning state.
-- Above Hard Maximum blocks acceptance.
-- Estimates use 1, 2, 3, 5, 8, and rare 13; no 21.
-- Approximately 5-8% of representative work remains explicitly unestimated.
-- CRM Modernization should contain at least 120 child items across eight Epics and at least 45 future planning candidates.
-- Incomplete-item Age is calculated from Created Date.
-- Completed items use cycle time from Created Date to Completed Date and do not keep aging.
-- Historical Sprint results come from immutable snapshots, not an item's current State.
-- Product burnup tracks completed estimated points against total estimated product scope while keeping unestimated work visible.
+- Default Sprint cadence: two weeks; future Settings support one to four weeks.
+- Sprint 24 is Current; Sprint 25 is Next in the approved sample timeline.
+- Default planning horizon: 90 days, including every Sprint overlapping the boundary.
+- Beyond-horizon work is **Future Backlog**.
+- Estimates use `1, 2, 3, 5, 8, 13`; no 21 and no zero-as-missing.
+- Incomplete Age is calculated from Created Date.
+- Completed items use Cycle Time from Created Date to Completed Date and stop aging.
+- Historical Sprint results use immutable snapshots rather than current item State.
+- Source refresh preserves dashboard-local overlays.
+- Prototype sample identities and contact data must be fictional.
 
-## Known Sprints defect
+## Known open product items
 
-The Sprints selector currently changes the summary snapshot, but the Sprint Items table can continue showing a fixed slice of items. Issue #41 owns the correction.
+- #41: Sprints selector and item membership must derive from the same selected snapshot.
+- #48: Decision History labeled-column table redesign.
+- #59: standardize Points / Estimate / Job Size terminology across views.
+- #13: Reports UI and statistical forecasting.
+- Future AI Sprint-planning direction is not yet an implementation issue and must not be implemented without governed decomposition.
 
-The repaired view must derive the header, dates, lifecycle, goal, capacity, committed/completed/remaining/blocked totals, progress, scope movement, State counts, and item membership from the same selected Sprint snapshot. Sprints and Prioritization must use the same generated Sprint calendar.
+## Governance and memory discipline
 
-## Profile and System Settings direction
+Required workflow:
 
-Profile includes personal display fields such as first name, last name, email, title, personal display time zone, and display preferences. Prototype identity and email are fictional/browser-local and are not production authentication.
+Issue → acceptance criteria → branch → intentional commits → draft PR → detailed Implementation History → separate owner Acceptance Verification → owner merge → owner closure.
 
-System Settings owns official product configuration, including project/workspace, official time zone, Sprint cadence and anchor, horizon, capacity policy, data-source behavior, reporting boundaries, and future synchronization preferences. Personal display time zone must not change official project/Sprint/reporting boundaries.
+Memory responsibilities:
 
-## Read-only refresh and local overlays
+- `CODEX.md`: Codex's durable restart memory.
+- Claude's memory Markdown: Claude's durable restart memory.
+- Issue #57: controlled cross-agent handoffs and audit prompts.
+- Issues, PRs, commits, checks, and deployments: authoritative delivery evidence.
+- Local gitignored memory files are convenience only and may disappear with workspace cleanup.
 
-The future connector direction is a configurable read-only pull, defaulting to every 24 hours, plus a manual **Refresh Data** action. API synchronization and LLM usage are separate concerns; a source refresh does not inherently consume LLM tokens.
+Refresh `CODEX.md` when active priorities, issue/PR states, governance, CI/deployment infrastructure, major implementations, audits, or next actions materially change.
 
-Source refresh may update source-owned fields. It must preserve dashboard-local fields, including human ratings, evidence, confidence, calculated-method inputs, rationale, decisions, planned Sprint, local estimate when permitted, capacity settings/history, and decision history. Reconciliation detects differences; it never corrects the source automatically.
+## Immediate restart recommendation
 
-## Proposed future AI Sprint-planning concept
+A new Codex chat should:
 
-This is a confirmed product direction from discussion but is **not yet a GitHub implementation issue**. Do not implement it until it receives governed issue decomposition and acceptance criteria.
-
-Intended flow:
-
-1. Humans enter or approve the ratings and weighting inputs.
-2. The system calculates prioritization scores deterministically.
-3. AI uses those approved scores, evidence, dependencies, eligibility, estimates, Sprint Targets, and Hard Maximums to propose a chronologically ordered multi-Sprint plan.
-4. AI never invents missing ratings or silently changes human inputs.
-5. The proposal fills upcoming Sprints without exceeding any Hard Maximum and visibly distinguishes Target warnings.
-6. Each Sprint is expandable so the user can inspect the ordered items, evidence, estimates, capacity use, dependencies, and reasons for placement.
-7. The generated plan begins in **Draft**.
-8. A human may move, remove, defer, or reorder items and must provide rationale where governance requires it.
-9. Only an authorized human, initially the Product Owner, can move the plan from **Draft** to **Accepted**.
-10. Acceptance is a local planning decision and does not write to Azure DevOps or Jira.
-
-This likely warrants a separate Epic because it introduces a planning engine, allocation rules, dependency handling, expandable Sprint-plan UI, lifecycle states, change history, and human acceptance governance. Decide and document its relationship to #15, #26, #35, #36, #39, and #42 before creating implementation stories.
-
-## Reporting direction
-
-Issue #43 supplies shared reporting inputs; issue #13 retains ownership of the Reports UI and statistical forecast behavior.
-
-Burnup must distinguish product-scope changes from Sprint movement:
-
-- Adding/removing work or changing estimates changes product scope.
-- Moving work between Sprints does not change product scope.
-- Moving work between Epics changes Epic scope but not product scope.
-- Historical completed-point velocities, sample size, median input, remaining points, and capacity context must be available for forecasting.
-- Capacity Target and Hard Maximum are context, not substitutes for historical velocity.
-
-Future product measurement may include NPS and customer satisfaction after a real pilot and baseline exist. Those measures do not validate the current prototype by themselves.
-
-## Governance reminders
-
-For every material change:
-
-1. Confirm an issue with complete acceptance criteria.
-2. Create a focused branch from the correct base.
-3. Make intentional commits.
-4. Open a draft PR.
-5. Codex posts detailed Implementation History.
-6. The repository owner posts separate criterion-by-criterion Acceptance Verification.
-7. The repository owner decides whether to merge and close.
-
-Never check acceptance boxes merely because code exists. Verification must point to evidence. Leave partial work open.
-
-## Status at this handoff
-
-- Product Vision and Roadmap documentation have been accepted and merged.
-- Issues #21-#30 and #31-#45 are open planning work; their creation did not start implementation.
-- Their bodies were audited and expanded with detailed acceptance criteria.
-- Issue #15/draft PR #16 remain active.
-- Issue #46 tracks this documentation-only handoff refresh.
-- No application code was changed as part of #46.
+1. Verify whether PR #50 has merged. If not, read this file from `docs/codex-handoff-issue-15-audit` as well as `main`.
+2. Inspect issue #15/PR #16 and issue #32/PR #60.
+3. Read issue #57 entries newer than HO-014.
+4. Verify CI checks on every active PR.
+5. Ask the Product Owner which already-reviewed item should proceed; do not assume permission to merge, close, accept, or start #33.

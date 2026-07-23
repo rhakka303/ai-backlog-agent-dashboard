@@ -58,7 +58,7 @@ Permanent principles:
 - The original 81-check Codex audit reported 34 Pass, 6 Partial, and 41 Fail. Those totals describe the pre-rework state and must not be treated as the current implementation result.
 - Codex subsequently implemented the failed/partial batches on the existing branch, with targeted tests and repeated deployments.
 - Claude's read-only audits through HO-009 found the reviewed fixes real, narrow, and free of the checked regressions.
-- The live prototype reached Site version 16 for the latest Prioritization fixes in this work period.
+- The live prototype reached Sites version 21 after the accepted keyboard-focus correction.
 - Issue #15 and PR #16 still require the Product Owner's separate Acceptance Verification and merge decision.
 
 Important implemented corrections include:
@@ -112,6 +112,18 @@ Scope boundaries:
 - Deployment/CD remains manual and separate.
 - Making CI a required branch-protection status check remains follow-up scope related to #53.
 
+### Keyboard focus accessibility — issue #66 / merged PR #67
+
+- Issue #66 captured missing or incorrectly placed visible keyboard focus on selectors and search inputs.
+- Codex implemented the correction on `fix/visible-keyboard-focus`; PR #67 targeted `feature/prioritization-workspace`.
+- The final CSS places the shared focus ring around the complete control container using container selectors tied to the child control's `:focus-visible` state.
+- A focused regression test protects the selector coverage and rejects the superseded child-level outline.
+- GitHub Actions run `29996829944` passed, and Sites version 21 deployed successfully.
+- The Product Owner performed hands-on keyboard verification and explicitly accepted the correction.
+- PR #67 merged into `feature/prioritization-workspace` at merge commit `f4ae80ce7fbbb55b86cac68ca8f9db3114d3ecd8`.
+- HO-021 reported a possible project-selector test/source mismatch. Claude's HO-023 audit proved there was no repository or live-application defect; the failure came from Codex's stale or mid-edit local checkout. No issue or code change was required.
+- Before reporting a local failure as a defect, freshly sync the exact authoritative branch and reproduce the failure there.
+
 ### Codex memory refresh — issue #49 / draft PR #50
 
 - Issue #49 and draft PR #50 own this `CODEX.md` refresh.
@@ -130,8 +142,12 @@ Issue #57 is permanent and append-only. During this work period:
 - HO-012 reported Claude's independent #32 audit with no blockers.
 - HO-013 requested the CI lockfile prerequisite.
 - HO-014 recorded Codex's lockfile implementation.
+- HO-019 assigned the keyboard-focus accessibility correction.
+- HO-020 recorded implementation and requested Claude's independent audit.
+- HO-021 reported a possible project-selector test/source mismatch.
+- HO-023 resolved HO-021 as a stale-local-checkout artifact, not a repository or live-product defect.
 
-Always read entries newer than HO-014 because they may supersede this snapshot.
+Always read entries newer than HO-023 because they may supersede this snapshot.
 
 ## Epic and dependency map
 
@@ -200,6 +216,6 @@ A new Codex chat should:
 
 1. Verify whether PR #50 has merged. If not, read this file from `docs/codex-handoff-issue-15-audit` as well as `main`.
 2. Inspect issue #15/PR #16 and issue #32/PR #60.
-3. Read issue #57 entries newer than HO-014.
+3. Read issue #57 entries newer than HO-023.
 4. Verify CI checks on every active PR.
 5. Ask the Product Owner which already-reviewed item should proceed; do not assume permission to merge, close, accept, or start #33.

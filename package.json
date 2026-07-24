@@ -39,6 +39,11 @@
     "vite": "8.0.16",
     "wrangler": "4.114.0"
   },
+  "overrides": {
+    "esbuild": "0.28.1",
+    "postcss": "8.5.23",
+    "sharp": "0.35.2"
+  },
   "type": "module",
   "displayName": "AI Backlog Agent Dashboard"
 }

@@ -110,6 +110,7 @@ All material changes follow this sequence:
 8. Post a detailed **Implementation History** comment on the issue.
 9. Post a separate **Acceptance Verification** comment mapping every criterion to evidence.
 10. Merge and close only after all criteria pass.
+11. When closing an issue meets a Phase's stated "Completion signal" in `docs/ROADMAP.md`, or a major Epic (e.g. #21, #31) reaches a real milestone (created, a child closes, the parent closes), check whether `docs/ROADMAP.md` needs updating as part of that same closure -- not on a calendar schedule, but tied to the specific event that made it stale. A roadmap describing work as "unfinished" after the issue that finished it has closed is itself a governance defect.
 
 An Implementation History must state, step by step:
 

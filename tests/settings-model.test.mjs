@@ -28,9 +28,11 @@ test("profile normalization rejects empty stored values", () => {
   });
 });
 
-test("Sprint and capacity business logic remain delegated", () => {
+test("Sprint configuration is active while capacity business logic remains delegated", () => {
   assert.equal(systemSettings.sprint.owner, "#34");
+  assert.equal(systemSettings.sprint.status, "Configured");
   assert.equal(systemSettings.capacity.owner, "#36");
+  assert.equal(systemSettings.capacity.status, "Extension point");
   assert.equal(systemSettings.governance.connectorPolicy, "Azure DevOps and Jira are strictly read-only");
 });
 

@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import PrioritizationView from "./PrioritizationView";
+import SettingsView from "./SettingsView";
+import { defaultProfile } from "./settingsModel.mjs";
 
 type Snapshot = {
   label: string;
@@ -120,8 +122,8 @@ const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
   items: project.items.map((item, itemIndex) => { const state = nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length]; return { ...item, state, currentIterationId: ["Committed", "Active", "Testing"].includes(state) ? `${project.shortName.toLowerCase()}-sprint-24` : null }; }),
 }));
 
-type DashboardView = "overview" | "backlog" | "prioritization" | "sprints";
-const dashboardViews: DashboardView[] = ["overview", "backlog", "prioritization", "sprints"];
+type DashboardView = "overview" | "backlog" | "prioritization" | "sprints" | "settings";
+const dashboardViews: DashboardView[] = ["overview", "backlog", "prioritization", "sprints", "settings"];
 function currentDashboardView(): DashboardView {
   if (typeof window === "undefined") return "overview";
   const requestedView = window.location.hash.slice(1).toLowerCase();
@@ -289,6 +291,7 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState<BacklogItem | null>(null);
   const [sprintSearch, setSprintSearch] = useState("");
   const [sprintStatus, setSprintStatus] = useState("all");
+  const [profile, setProfile] = useState(defaultProfile);
 
 
   const project = projects[projectIndex];
@@ -363,6 +366,8 @@ export default function Home() {
   const showComingNext = (label: string) => {
     setNotice(`${label} is reserved for the future AI service. No live AI recommendation was generated.`);
   };
+  const updateProfile = useCallback((nextProfile: typeof defaultProfile) => setProfile(nextProfile), []);
+  const profileInitials = `${profile.firstName.at(0) ?? ""}${profile.lastName.at(0) ?? ""}`.toUpperCase();
 
   return (
     <main className="app-shell">
@@ -379,17 +384,17 @@ export default function Home() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-foot">
-          <div className="avatar">SG</div>
-          <div><strong>Prototype mode</strong><span>Local sample data</span></div>
-        </div>
+        <button className="sidebar-foot" onClick={() => setActiveView("settings")} aria-label="Open Profile and System Settings">
+          <div className="avatar">{profileInitials}</div>
+          <div><strong>{profile.firstName}</strong><span>Profile &amp; settings</span></div>
+        </button>
       </aside>
 
       <section className="workspace">
         <header className="topbar">
           <div>
             <p className="eyebrow">Product operations workspace</p>
-            <h1>{activeView === "overview" ? "AI Backlog Agent" : activeView === "backlog" ? "Backlog" : activeView === "prioritization" ? "Prioritization" : "Sprints"}</h1>
+            <h1>{activeView === "overview" ? "AI Backlog Agent" : activeView === "backlog" ? "Backlog" : activeView === "prioritization" ? "Prioritization" : activeView === "sprints" ? "Sprints" : "Settings"}</h1>
           </div>
           <div className="topbar-actions">
             <label className="select-control">
@@ -410,7 +415,7 @@ export default function Home() {
           </div>
         </header>
 
-        {activeView === "overview" ? <><section className="metric-grid" aria-label="Backlog summary">
+        {activeView === "settings" ? <SettingsView onProfileChange={updateProfile} onNotice={setNotice} /> : activeView === "overview" ? <><section className="metric-grid" aria-label="Backlog summary">
           <MetricCard symbol="▤" value={String(snapshot.backlog)} label="Backlog items" note={`${Math.abs(delta(snapshot.backlog, previous.backlog))} ${delta(snapshot.backlog, previous.backlog) <= 0 ? "fewer" : "more"} than last sprint`} />
           <MetricCard symbol="✓" value={String(snapshot.ready)} label="Ready" note={`${Math.round((snapshot.ready / snapshot.backlog) * 100)}% of the backlog`} />
           <MetricCard symbol="◷" value={String(snapshot.aging)} label="Aging" note="Items older than 30 days" tone="amber" />

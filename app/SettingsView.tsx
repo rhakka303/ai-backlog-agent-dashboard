@@ -9,14 +9,49 @@ import {
   restoreSampleDefaults,
   systemSettings,
 } from "./settingsModel.mjs";
+import {
+  ACTIVE_SPRINT_POLICIES,
+  activeSprintPlanningRequirement,
+  appendSprintConfigVersion,
+  defaultPlanningTarget,
+  defaultSprintConfig,
+  deriveSprint,
+  formatSprintDate,
+  OFFICIAL_TIME_ZONES,
+  parseSprintConfigState,
+  SPRINT_CONFIG_STORAGE_KEY,
+  SPRINT_DATE_FORMATS,
+  SPRINT_LENGTH_OPTIONS,
+  validateSprintConfig,
+} from "./sprintConfig.mjs";
 
 type Profile = typeof defaultProfile;
+type SprintConfig = {
+  sprintLengthWeeks: number;
+  sprintOneStartDate: string;
+  sequenceStart: number;
+  namingPrefix: string;
+  officialTimeZone: string;
+  dateFormat: string;
+  planningHorizonDays: number;
+  activeSprintPlanningPolicy: string;
+};
+type SprintConfigEvent = {
+  id: string;
+  version: number;
+  actor: string;
+  at: string;
+  rationale: string;
+  changedFields: string[];
+  previousValue: SprintConfig;
+  newValue: SprintConfig;
+};
 type SettingsSection = "profile" | "workspace" | "sprint" | "capacity" | "backlog" | "reporting" | "governance" | "data";
 
 const sections: { id: SettingsSection; label: string; note: string }[] = [
   { id: "profile", label: "Profile", note: "Personal display preferences" },
   { id: "workspace", label: "Workspace", note: "Project identity and official time zone" },
-  { id: "sprint", label: "Sprint", note: "Configuration extension point" },
+  { id: "sprint", label: "Sprint", note: "Cadence, lifecycle, and planning policy" },
   { id: "capacity", label: "Capacity", note: "Governed capacity extension point" },
   { id: "backlog", label: "Backlog", note: "Data and metric policies" },
   { id: "reporting", label: "Reporting", note: "Burnup and forecast policy" },
@@ -42,9 +77,11 @@ function PolicyList({ entries }: { entries: [string, string | string[]][] }) {
 
 export default function SettingsView({
   onProfileChange,
+  onSprintConfigChange,
   onNotice,
 }: {
   onProfileChange: (profile: Profile) => void;
+  onSprintConfigChange: (config: SprintConfig) => void;
   onNotice: (message: string) => void;
 }) {
   const [activeSection, setActiveSection] = useState<SettingsSection>("profile");
@@ -52,6 +89,11 @@ export default function SettingsView({
   const [savedProfile, setSavedProfile] = useState<Profile>(defaultProfile);
   const [loaded, setLoaded] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  const [sprintDraft, setSprintDraft] = useState<SprintConfig>({ ...defaultSprintConfig });
+  const [savedSprintConfig, setSavedSprintConfig] = useState<SprintConfig>({ ...defaultSprintConfig });
+  const [sprintHistory, setSprintHistory] = useState<SprintConfigEvent[]>([]);
+  const [sprintRationale, setSprintRationale] = useState("");
+  const [sprintLoaded, setSprintLoaded] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -73,7 +115,36 @@ export default function SettingsView({
   }, [onProfileChange]);
 
   const dirty = useMemo(() => JSON.stringify(profile) !== JSON.stringify(savedProfile), [profile, savedProfile]);
+  const sprintDirty = useMemo(() => JSON.stringify(sprintDraft) !== JSON.stringify(savedSprintConfig), [sprintDraft, savedSprintConfig]);
+  const sprintErrors = useMemo(() => validateSprintConfig(sprintDraft), [sprintDraft]);
+  const sprintPreview = useMemo(() => sprintErrors.length ? [] : [17, 24, 25, 26].map((sequence) => deriveSprint(sequence, sprintDraft)), [sprintDraft, sprintErrors]);
+  const planningTarget = useMemo(() => sprintErrors.length ? null : defaultPlanningTarget(sprintDraft), [sprintDraft, sprintErrors]);
+  const activeSprintRequirement = useMemo(() => sprintErrors.length ? null : activeSprintPlanningRequirement(sprintDraft), [sprintDraft, sprintErrors]);
   const setField = (field: keyof Profile, value: string) => setProfile((current) => ({ ...current, [field]: value }));
+  const setSprintField = <K extends keyof SprintConfig>(field: K, value: SprintConfig[K]) => setSprintDraft((current) => ({ ...current, [field]: value }));
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const stored = window.localStorage.getItem(SPRINT_CONFIG_STORAGE_KEY);
+        const state = parseSprintConfigState(stored ? JSON.parse(stored) : {});
+        const config = { ...state.config } as SprintConfig;
+        setSprintDraft(config);
+        setSavedSprintConfig(config);
+        setSprintHistory(state.history as SprintConfigEvent[]);
+        onSprintConfigChange(config);
+      } catch {
+        const config = { ...defaultSprintConfig } as SprintConfig;
+        setSprintDraft(config);
+        setSavedSprintConfig(config);
+        setSprintHistory([]);
+        onSprintConfigChange(config);
+      } finally {
+        setSprintLoaded(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [onSprintConfigChange]);
 
   const saveProfile = () => {
     const normalized = normalizeProfile(profile) as Profile;
@@ -82,6 +153,32 @@ export default function SettingsView({
     setSavedProfile(normalized);
     onProfileChange(normalized);
     onNotice("Profile preferences saved in this browser");
+  };
+
+  const saveSprintConfig = () => {
+    if (sprintErrors.length) {
+      onNotice("Correct the Sprint configuration validation errors before saving");
+      return;
+    }
+    if (!sprintRationale.trim()) {
+      onNotice("A rationale is required for every Sprint configuration change");
+      return;
+    }
+    const nextHistory = appendSprintConfigVersion(sprintHistory, {
+      id: `sprint-config-${Date.now()}`,
+      actor: "Product Owner",
+      at: new Date().toISOString(),
+      rationale: sprintRationale,
+      previousValue: savedSprintConfig,
+      newValue: sprintDraft,
+    }) as SprintConfigEvent[];
+    const nextConfig = { ...sprintDraft };
+    window.localStorage.setItem(SPRINT_CONFIG_STORAGE_KEY, JSON.stringify({ config: nextConfig, history: nextHistory }));
+    setSavedSprintConfig(nextConfig);
+    setSprintHistory(nextHistory);
+    setSprintRationale("");
+    onSprintConfigChange(nextConfig);
+    onNotice(`Sprint configuration version ${nextHistory[0].version} saved`);
   };
 
   const resetSampleData = () => {
@@ -130,7 +227,7 @@ export default function SettingsView({
               <label><span>Time format</span><select value={profile.timeFormat} onChange={(event) => setField("timeFormat", event.target.value)}><option>12-hour</option><option>24-hour</option></select></label>
               <label><span>Calendar week starts</span><select value={profile.weekStartsOn} onChange={(event) => setField("weekStartsOn", event.target.value)}><option>Monday</option><option>Sunday</option></select></label>
             </div>
-            <div className="settings-callout"><strong>Display preference only</strong><span>Changing your personal time zone changes how timestamps are displayed. Official Sprint and reporting boundaries remain in {systemSettings.workspace.officialTimeZone}.</span></div>
+            <div className="settings-callout"><strong>Display preference only</strong><span>Changing your personal time zone changes how timestamps are displayed. Official Sprint and reporting boundaries remain in {savedSprintConfig.officialTimeZone}.</span></div>
             <div className="settings-actions"><span aria-live="polite">{loaded && dirty ? "Unsaved profile changes" : "Profile preferences are current"}</span><button className="primary-button" onClick={saveProfile} disabled={!loaded || !dirty}>Save profile</button></div>
           </section>
         )}
@@ -141,7 +238,7 @@ export default function SettingsView({
             <PolicyList entries={[
               ["Workspace", systemSettings.workspace.workspaceName],
               ["Project", systemSettings.workspace.projectName],
-              ["Official project time zone", systemSettings.workspace.officialTimeZone],
+              ["Official project time zone", savedSprintConfig.officialTimeZone],
             ]} />
             <div className="settings-callout"><strong>One official clock</strong><span>Personal display preferences never move Sprint start/end dates or reporting boundaries.</span></div>
           </section>
@@ -149,8 +246,31 @@ export default function SettingsView({
 
         {activeSection === "sprint" && (
           <section className="settings-panel" aria-labelledby="sprint-settings-heading">
-            <div className="settings-heading"><div><p className="eyebrow">Owned by issue #34</p><h2 id="sprint-settings-heading">Sprint settings</h2><p>This section reserves the canonical home for Sprint controls without implementing their business logic early.</p></div><span className="extension-badge">Extension point</span></div>
-            <PolicyList entries={[["Owner", systemSettings.sprint.owner], ["Planned fields", systemSettings.sprint.fields]]} />
+            <div className="settings-heading"><div><p className="eyebrow">Canonical project cadence</p><h2 id="sprint-settings-heading">Sprint settings</h2><p>One governed configuration calculates Sprint identity, dates, lifecycle, and the normal planning target everywhere.</p></div><span className="sample-badge">Configured</span></div>
+            <div className="settings-form sprint-settings-form">
+              <label><span>Sprint length</span><select value={sprintDraft.sprintLengthWeeks} onChange={(event) => setSprintField("sprintLengthWeeks", Number(event.target.value))}>{SPRINT_LENGTH_OPTIONS.map((weeks) => <option key={weeks} value={weeks}>{weeks} {weeks === 1 ? "week" : "weeks"}</option>)}</select></label>
+              <label><span>Sprint 1 start date</span><input type="date" value={sprintDraft.sprintOneStartDate} aria-describedby="sprint-anchor-help" onChange={(event) => setSprintField("sprintOneStartDate", event.target.value)} /><small id="sprint-anchor-help">Calendar date including month, day, and year</small></label>
+              <label><span>Sequence begins</span><input type="number" value={sprintDraft.sequenceStart} readOnly aria-readonly="true" /></label>
+              <label><span>Naming prefix</span><input value={sprintDraft.namingPrefix} onChange={(event) => setSprintField("namingPrefix", event.target.value)} /></label>
+              <label><span>Official project time zone</span><select value={sprintDraft.officialTimeZone} onChange={(event) => setSprintField("officialTimeZone", event.target.value)}>{OFFICIAL_TIME_ZONES.map((zone) => <option key={zone}>{zone}</option>)}</select></label>
+              <label><span>Date format</span><select value={sprintDraft.dateFormat} onChange={(event) => setSprintField("dateFormat", event.target.value)}>{SPRINT_DATE_FORMATS.map((format) => <option key={format}>{format}</option>)}</select></label>
+              <label><span>Planning horizon</span><div className="input-with-unit"><input type="number" min="1" max="365" value={sprintDraft.planningHorizonDays} onChange={(event) => setSprintField("planningHorizonDays", Number(event.target.value))} /><span>calendar days</span></div></label>
+              <label><span>Current-Sprint planning</span><select value={sprintDraft.activeSprintPlanningPolicy} onChange={(event) => setSprintField("activeSprintPlanningPolicy", event.target.value)}>{Object.entries(ACTIVE_SPRINT_POLICIES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            </div>
+            {sprintErrors.length > 0 && <div className="settings-validation" role="alert"><strong>Configuration needs attention</strong><ul>{sprintErrors.map((error: { field: string; message: string }) => <li key={error.field}>{error.message}</li>)}</ul></div>}
+            {sprintErrors.length === 0 && <div className="sprint-config-preview" aria-label="Derived Sprint examples">
+              <div className="sprint-preview-heading"><div><strong>Derived lifecycle preview</strong><span>Fixed sample calculation: Jul 20, 2026 at 12:00 PM Pacific</span></div>{planningTarget && <span className="planning-target-badge">Default planning target: {planningTarget.name} ({planningTarget.lifecycle})</span>}</div>
+              <div className="sprint-preview-grid">{sprintPreview.map((sprint) => <article key={sprint.sequence}><span className={`sprint-lifecycle sprint-lifecycle-${sprint.lifecycle.toLowerCase()}`}>{sprint.lifecycle}</span><strong>{sprint.name}</strong><small>{formatSprintDate(sprint.startDate, sprintDraft.dateFormat)} – {formatSprintDate(sprint.endDate, sprintDraft.dateFormat)}</small></article>)}</div>
+            </div>}
+            {activeSprintRequirement && <div className="settings-callout warning"><strong>Current delivery context</strong><span>{activeSprintRequirement.label}. Child 11 (#42) owns Prioritization enforcement; this configuration exposes warning and rationale requirements without implementing that later workflow here.</span></div>}
+            <div className="settings-form sprint-change-form">
+              <label><span>Change rationale</span><textarea value={sprintRationale} placeholder="Explain why this shared Sprint configuration is changing" onChange={(event) => setSprintRationale(event.target.value)} /></label>
+            </div>
+            <div className="settings-actions"><span aria-live="polite">{!sprintLoaded ? "Loading Sprint configuration" : sprintErrors.length ? `${sprintErrors.length} validation issue${sprintErrors.length === 1 ? "" : "s"}` : sprintDirty ? "Unsaved Sprint configuration changes" : "Sprint configuration is current"}</span><button className="primary-button" onClick={saveSprintConfig} disabled={!sprintLoaded || !sprintDirty || sprintErrors.length > 0 || !sprintRationale.trim()}>Save configuration</button></div>
+            <section className="sprint-config-history" aria-labelledby="sprint-config-history-heading">
+              <div className="panel-heading"><div><h3 id="sprint-config-history-heading">Configuration history</h3><p>Each saved change records complete previous and new values.</p></div><span className="coming-badge">{sprintHistory.length} versions</span></div>
+              {sprintHistory.length ? <div>{sprintHistory.map((event) => <article key={event.id}><time>{event.at}</time><strong>Version {event.version} · {event.changedFields.map(formatPolicyLabel).join(", ")}</strong><span>{event.actor} · {event.rationale}</span><small>Previous: {event.changedFields.map((field) => `${formatPolicyLabel(field)} ${String(event.previousValue[field as keyof SprintConfig])}`).join(" · ")}</small><small>New: {event.changedFields.map((field) => `${formatPolicyLabel(field)} ${String(event.newValue[field as keyof SprintConfig])}`).join(" · ")}</small></article>)}</div> : <div className="empty-state compact"><strong>No configuration changes recorded</strong><span>The accepted prototype defaults are active. Saving a change creates version 1.</span></div>}
+            </section>
           </section>
         )}
 

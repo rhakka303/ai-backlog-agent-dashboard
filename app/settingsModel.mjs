@@ -21,8 +21,8 @@ export const systemSettings = Object.freeze({
   },
   sprint: {
     owner: "#34",
-    status: "Extension point",
-    fields: ["cadence", "anchor date", "planning horizon", "official boundaries"],
+    status: "Configured",
+    fields: ["cadence", "anchor date", "sequence", "naming", "planning horizon", "official boundaries", "active-Sprint policy"],
   },
   capacity: {
     owner: "#36",

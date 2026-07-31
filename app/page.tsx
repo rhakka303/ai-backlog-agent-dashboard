@@ -4,6 +4,15 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import PrioritizationView from "./PrioritizationView";
 import SettingsView from "./SettingsView";
 import { defaultProfile } from "./settingsModel.mjs";
+import {
+  activeSprintPlanningRequirement,
+  currentSprintSequence,
+  defaultPlanningTarget,
+  defaultSprintConfig,
+  deriveSprint,
+  parseSprintConfigState,
+  SPRINT_CONFIG_STORAGE_KEY,
+} from "./sprintConfig.mjs";
 
 type Snapshot = {
   label: string;
@@ -25,7 +34,27 @@ type BacklogItem = {
   currentIterationId: string | null;
 };
 
-type SourceIteration = { id: string; name: string; startAt: string; endAt: string; lifecycle: "closed" | "active" | "upcoming"; sourceCommittedPoints: number };
+type SprintConfig = {
+  sprintLengthWeeks: number;
+  sprintOneStartDate: string;
+  sequenceStart: number;
+  namingPrefix: string;
+  officialTimeZone: string;
+  dateFormat: string;
+  planningHorizonDays: number;
+  activeSprintPlanningPolicy: string;
+};
+type SourceIteration = {
+  id: string;
+  name: string;
+  startAt: string;
+  endAt: string;
+  startDate: string;
+  endDate: string;
+  lifecycle: "closed" | "active" | "upcoming";
+  displayLifecycle: "Closed" | "Current" | "Next" | "Upcoming";
+  sourceCommittedPoints: number;
+};
 type SourceProject = Omit<Project, "items" | "iterations"> & { items: Omit<BacklogItem, "state" | "currentIterationId">[] };
 
 type Project = {
@@ -108,19 +137,31 @@ const sourceProjects: SourceProject[] = [
 ];
 
 const nativeStates = ["New", "Approved", "Committed", "Active", "Testing", "Closed", "Removed"];
-const sourceIterations = (shortName: string): SourceIteration[] => [
-  { id: `${shortName.toLowerCase()}-sprint-23`, name: "Sprint 23", startAt: "2026-06-17T00:00:00.000Z", endAt: "2026-06-30T23:59:59.000Z", lifecycle: "closed", sourceCommittedPoints: 22 },
-  { id: `${shortName.toLowerCase()}-sprint-24`, name: "Sprint 24", startAt: "2026-07-01T00:00:00.000Z", endAt: "2026-07-14T23:59:59.000Z", lifecycle: "active", sourceCommittedPoints: 18 },
-  { id: `${shortName.toLowerCase()}-sprint-25`, name: "Sprint 25", startAt: "2026-07-15T00:00:00.000Z", endAt: "2026-07-28T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
-  { id: `${shortName.toLowerCase()}-sprint-26`, name: "Sprint 26", startAt: "2026-07-29T00:00:00.000Z", endAt: "2026-08-11T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
-  { id: `${shortName.toLowerCase()}-sprint-27`, name: "Sprint 27", startAt: "2026-08-12T00:00:00.000Z", endAt: "2026-08-25T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
-  { id: `${shortName.toLowerCase()}-sprint-28`, name: "Sprint 28", startAt: "2026-08-26T00:00:00.000Z", endAt: "2026-09-08T23:59:59.000Z", lifecycle: "upcoming", sourceCommittedPoints: 0 },
-];
-const projects: Project[] = sourceProjects.map((project, projectIndex) => ({
-  ...project,
-  iterations: sourceIterations(project.shortName),
-  items: project.items.map((item, itemIndex) => { const state = nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length]; return { ...item, state, currentIterationId: ["Committed", "Active", "Testing"].includes(state) ? `${project.shortName.toLowerCase()}-sprint-24` : null }; }),
-}));
+const sourceIterations = (shortName: string, config: SprintConfig): SourceIteration[] => [23, 24, 25, 26, 27, 28].map((sequence) => {
+  const sprint = deriveSprint(sequence, config);
+  return {
+    id: `${shortName.toLowerCase()}-sprint-${sequence}`,
+    name: sprint.name,
+    startAt: `${sprint.startDate}T00:00:00.000Z`,
+    endAt: `${sprint.endDate}T23:59:59.999Z`,
+    startDate: sprint.startDate,
+    endDate: sprint.endDate,
+    lifecycle: sprint.lifecycle === "Closed" ? "closed" : sprint.lifecycle === "Current" ? "active" : "upcoming",
+    displayLifecycle: sprint.lifecycle,
+    sourceCommittedPoints: sprint.lifecycle === "Current" ? 18 : sprint.sequence === 23 ? 22 : 0,
+  };
+});
+const buildProjects = (config: SprintConfig): Project[] => {
+  const currentSequence = currentSprintSequence(config);
+  return sourceProjects.map((project, projectIndex) => ({
+    ...project,
+    iterations: sourceIterations(project.shortName, config),
+    items: project.items.map((item, itemIndex) => {
+      const state = nativeStates[(itemIndex + projectIndex * 2) % nativeStates.length];
+      return { ...item, state, currentIterationId: ["Committed", "Active", "Testing"].includes(state) ? `${project.shortName.toLowerCase()}-sprint-${currentSequence}` : null };
+    }),
+  }));
+};
 
 type DashboardView = "overview" | "backlog" | "prioritization" | "sprints" | "settings";
 const dashboardViews: DashboardView[] = ["overview", "backlog", "prioritization", "sprints", "settings"];
@@ -292,8 +333,17 @@ export default function Home() {
   const [sprintSearch, setSprintSearch] = useState("");
   const [sprintStatus, setSprintStatus] = useState("all");
   const [profile, setProfile] = useState(defaultProfile);
+  const [sprintConfig, setSprintConfig] = useState<SprintConfig>(() => {
+    if (typeof window === "undefined") return { ...defaultSprintConfig };
+    try {
+      const stored = window.localStorage.getItem(SPRINT_CONFIG_STORAGE_KEY);
+      return stored ? { ...parseSprintConfigState(JSON.parse(stored)).config } as SprintConfig : { ...defaultSprintConfig };
+    } catch {
+      return { ...defaultSprintConfig };
+    }
+  });
 
-
+  const projects = useMemo(() => buildProjects(sprintConfig), [sprintConfig]);
   const project = projects[projectIndex];
   const snapshot = project.history[sprintIndex];
   const previous = project.history[Math.max(0, sprintIndex - 1)];
@@ -367,7 +417,10 @@ export default function Home() {
     setNotice(`${label} is reserved for the future AI service. No live AI recommendation was generated.`);
   };
   const updateProfile = useCallback((nextProfile: typeof defaultProfile) => setProfile(nextProfile), []);
+  const updateSprintConfig = useCallback((nextConfig: SprintConfig) => setSprintConfig(nextConfig), []);
   const profileInitials = `${profile.firstName.at(0) ?? ""}${profile.lastName.at(0) ?? ""}`.toUpperCase();
+  const normalPlanningTarget = defaultPlanningTarget(sprintConfig);
+  const activePlanningRequirement = activeSprintPlanningRequirement(sprintConfig);
 
   return (
     <main className="app-shell">
@@ -415,7 +468,7 @@ export default function Home() {
           </div>
         </header>
 
-        {activeView === "settings" ? <SettingsView onProfileChange={updateProfile} onNotice={setNotice} /> : activeView === "overview" ? <><section className="metric-grid" aria-label="Backlog summary">
+        {activeView === "settings" ? <SettingsView onProfileChange={updateProfile} onSprintConfigChange={updateSprintConfig} onNotice={setNotice} /> : activeView === "overview" ? <><section className="metric-grid" aria-label="Backlog summary">
           <MetricCard symbol="▤" value={String(snapshot.backlog)} label="Backlog items" note={`${Math.abs(delta(snapshot.backlog, previous.backlog))} ${delta(snapshot.backlog, previous.backlog) <= 0 ? "fewer" : "more"} than last sprint`} />
           <MetricCard symbol="✓" value={String(snapshot.ready)} label="Ready" note={`${Math.round((snapshot.ready / snapshot.backlog) * 100)}% of the backlog`} />
           <MetricCard symbol="◷" value={String(snapshot.aging)} label="Aging" note="Items older than 30 days" tone="amber" />
@@ -487,7 +540,7 @@ export default function Home() {
         <footer className="prototype-footer">
           <span><i /> Sample data • No external systems connected</span>
           <button onClick={() => setGuideOpen(true)}>Implementation notes</button>
-        </footer></> : activeView === "prioritization" ? <PrioritizationView key={project.shortName} projectName={project.name} items={project.items} iterations={project.iterations} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
+        </footer></> : activeView === "prioritization" ? <PrioritizationView key={project.shortName} projectName={project.name} items={project.items} iterations={project.iterations} defaultPlanningTargetId={`${project.shortName.toLowerCase()}-${normalPlanningTarget.id}`} activeSprintPlanningPolicy={activePlanningRequirement} dateFormat={sprintConfig.dateFormat} /> : activeView === "backlog" ? <section className="backlog-workspace" aria-label={`${project.name} backlog`}>
           <div className="backlog-intro">
             <div><p className="eyebrow">{project.shortName} delivery inventory</p><h2>Refine with evidence, not instinct</h2><p>Search, sort, and inspect representative sample items. Readiness is based on visible evidence.</p></div>
             <span className="sample-badge">Sample data</span>
